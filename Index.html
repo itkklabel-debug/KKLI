@@ -935,14 +935,25 @@ async function loadLaporan(){
     stokBody.innerHTML = STATE.master.filter(x => x.Status==='Active').map(x => `<tr>
       <td class="font-mono text-xs">${escapeHtml(x.ID_Barang)}</td>
       <td>${escapeHtml(x.Nama_Barang)}</td>
+      <td>${escapeHtml(x.Kategori||'-')}</td>
       <td>${fmtNum(x.Stok_Akhir)} ${escapeHtml(x.Satuan||'')}</td>
+      <td>${escapeHtml(x.Satuan||'-')}</td>
       <td>Rp ${fmtNum((Number(x.Stok_Akhir)||0)*(Number(x.Harga_Beli)||0))}</td>
-      </tr>`).join('') || `<tr><td colspan="4" class="text-center text-slate-400 py-6">-</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="6" class="text-center text-slate-400 py-6">-</td></tr>`;
     const masuk  = STATE.trx.filter(t => t.Tipe==='Masuk');
     const keluar = STATE.trx.filter(t => t.Tipe==='Keluar');
-    document.getElementById('repTrxBody').innerHTML = `
-      <tr><td><span class="badge badge-green">Masuk</span></td><td>${masuk.length}</td><td>${fmtNum(masuk.reduce((s,t)=>s+Number(t.Qty||0),0))}</td></tr>
-      <tr><td><span class="badge badge-red">Keluar</span></td><td>${keluar.length}</td><td>${fmtNum(keluar.reduce((s,t)=>s+Number(t.Qty||0),0))}</td></tr>`;
+    const repMasukBody = document.getElementById('repMasukBody');
+    const repKeluarBody = document.getElementById('repKeluarBody');
+    if (repMasukBody) repMasukBody.innerHTML = masuk.length ? masuk.map((t,i) => `<tr><td>${i+1}</td><td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td><td>${fmtDate(t.Tanggal)}</td><td>${escapeHtml(t.Nama_Barang)}</td><td>${fmtNum(t.Qty)}</td><td>${escapeHtml(t.Keterangan||'-')}</td><td class="text-xs">${escapeHtml(t.User_Email||'-')}</td></tr>`).join('') : '';
+    if (repKeluarBody) repKeluarBody.innerHTML = keluar.length ? keluar.map((t,i) => `<tr><td>${i+1}</td><td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td><td>${fmtDate(t.Tanggal)}</td><td>${escapeHtml(t.Nama_Barang)}</td><td>${fmtNum(t.Qty)}</td><td>${escapeHtml(t.Keterangan||'-')}</td><td class="text-xs">${escapeHtml(t.User_Email||'-')}</td></tr>`).join('') : '';
+    const repMasukTotal = document.getElementById('repMasukTotal');
+    const repKeluarTotal = document.getElementById('repKeluarTotal');
+    const repMasukCount = document.getElementById('repMasukCount');
+    const repKeluarCount = document.getElementById('repKeluarCount');
+    if (repMasukTotal) repMasukTotal.textContent = fmtNum(masuk.reduce((s,t)=>s+Number(t.Qty||0),0));
+    if (repKeluarTotal) repKeluarTotal.textContent = fmtNum(keluar.reduce((s,t)=>s+Number(t.Qty||0),0));
+    if (repMasukCount) repMasukCount.textContent = masuk.length;
+    if (repKeluarCount) repKeluarCount.textContent = keluar.length;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }

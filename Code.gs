@@ -486,17 +486,19 @@ function getDashboardData(){
     const last7 = trxItems.filter(r => r[1] && (today - new Date(r[1]))/(1000*60*60*24) <= 7);
 
     // PR Pending (untuk alert)
-    const prSh = ss.getSheetByName(SHEET_PR);
     let prPending = 0;
-    if (prSh && prSh.getLastRow() > 1){
-      const prData = prSh.getDataRange().getValues();
-      for (let i=1;i<prData.length;i++){
-        if (prData[i][7] === 'Pending'){
-          prPending++;
-          alertList.push({ tipe:'PR Baru', pesan:`${prData[i][3]} qty ${prData[i][4]} oleh ${prData[i][8]}`, waktu:prData[i][1] });
+    try {
+      const prSh = ss.getSheetByName(SHEET_PR);
+      if (prSh && prSh.getLastRow() > 1){
+        const prData = prSh.getDataRange().getValues();
+        for (let i=1;i<prData.length;i++){
+          if (prData[i][7] === 'Pending'){
+            prPending++;
+            alertList.push({ tipe:'PR Baru', pesan:`${prData[i][3]} qty ${prData[i][4]} oleh ${prData[i][8]}`, waktu:prData[i][1] });
+          }
         }
       }
-    }
+    } catch(_){}
 
     return {
       ok:true,
