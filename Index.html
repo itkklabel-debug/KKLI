@@ -72,6 +72,44 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
+<!-- ACCESS DENIED OVERLAY -->
+<div id="accessDenied" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:300;overflow-y:auto;padding:40px 20px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;padding:32px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.08)">
+    <div style="display:inline-block;background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;margin-bottom:14px">Akses Ditolak</div>
+    <h1 style="font-size:22px;margin:0 0 6px;color:#0f172a">Akun Anda belum terdaftar / aktif</h1>
+    <p style="color:#475569;margin:0 0 18px">Aplikasi mendeteksi email Anda sebagai berikut. Pastikan email ini sudah terdaftar di sheet <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">User</code> dengan Status <b>Active</b>.</p>
+    <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:14px 16px;border-radius:8px;margin-bottom:20px">
+      <div style="font-size:12px;color:#1e40af;font-weight:600;margin-bottom:4px">Email yang terdeteksi:</div>
+      <div id="adDetectedEmail" style="font-family:ui-monospace,monospace;font-size:15px;color:#1e3a8a;font-weight:600">-</div>
+      <div id="adDetectedStatus" style="font-size:12px;color:#475569;margin-top:6px"></div>
+    </div>
+
+    <div id="adNoAdmin" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;padding:16px;border-radius:8px;margin-bottom:20px">
+      <div style="font-weight:600;color:#166534;margin-bottom:8px">✓ Belum ada Admin Aktif di sistem</div>
+      <p style="color:#166534;font-size:14px;margin:0 0 12px">Anda bisa mendaftarkan diri sendiri sebagai Admin pertama:</p>
+      <input id="adNamaInput" placeholder="Nama lengkap Anda" style="width:100%;padding:9px 12px;border:1px solid #86efac;border-radius:8px;font-size:14px;margin-bottom:10px">
+      <button class="btn btn-success" onclick="claimAdminBtn()" style="width:100%;justify-content:center">📝 Daftar saya sebagai Admin</button>
+    </div>
+
+    <div style="font-size:14px;color:#475569;line-height:1.7">
+      <b>Jika email tidak sesuai:</b>
+      <ol style="padding-left:20px;margin:8px 0">
+        <li>Pastikan Anda login dengan akun Google yang benar di browser ini</li>
+        <li>Coba buka di <b>jendela Incognito</b> dan login ulang</li>
+        <li>Jika deploy memakai "Execute as: User accessing", coba ubah ke <b>"Execute as: Me"</b> agar email selalu terdeteksi</li>
+      </ol>
+      <b>Jika email sudah benar tapi tetap ditolak:</b>
+      <ol style="padding-left:20px;margin:8px 0">
+        <li>Buka sheet <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">User</code> di spreadsheet</li>
+        <li>Cek tidak ada spasi tersembunyi di kolom Email — gunakan <code>=TRIM(A2)</code> untuk membersihkan</li>
+        <li>Pastikan kolom Status berisi <b>Active</b> (bukan "active" atau "AKTIF")</li>
+        <li>Refresh halaman ini</li>
+      </ol>
+    </div>
+    <button class="btn btn-secondary" onclick="location.reload()" style="margin-top:14px">🔄 Refresh</button>
+  </div>
+</div>
+
 <!-- LAYOUT -->
 <div class="flex">
 
@@ -528,14 +566,54 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (u.role !== 'Admin'){
       document.querySelectorAll('.admin-only').forEach(x => x.style.display='none');
     }
+
+    // Akses ditolak → tampilkan overlay informatif (bukan toast yang langsung hilang)
     if (!u.found || u.status !== 'Active'){
-      toast('User belum terdaftar/aktif. Hubungi Admin untuk mendapat akses.', 'error');
+      await showAccessDenied(u);
+      return; // jangan lanjut load dashboard
     }
+
     document.getElementById('trxTanggal').value = isoDate(new Date());
     await loadDashboard();
   } catch(e){ toast('Gagal init: ' + e.message, 'error'); }
   finally { showLoading(false); }
 });
+
+async function showAccessDenied(u){
+  document.getElementById('adDetectedEmail').textContent = u.email || '(KOSONG — Apps Script tidak bisa membaca email Anda)';
+  let statusText = '';
+  if (!u.email)       statusText = 'Sebab kemungkinan: web app dideploy "Execute as: User accessing" tapi akun Anda dari domain Workspace berbeda. Solusi: deploy ulang dengan "Execute as: Me".';
+  else if (!u.found)  statusText = 'Email tidak ditemukan di sheet User. Periksa ejaan & spasi tersembunyi.';
+  else                statusText = 'Email terdaftar tapi Status = ' + (u.status||'-') + '. Minta Admin mengubah Status menjadi Active.';
+  document.getElementById('adDetectedStatus').textContent = statusText;
+
+  // Cek apakah belum ada admin aktif → tawarkan self-claim
+  try {
+    const w = await gas('whoami');
+    const hasAdmin = (w.registered_users||[]).some(r =>
+      String(r.role).trim() === 'Admin' && String(r.status).trim() === 'Active'
+    );
+    if (!hasAdmin && u.email){
+      document.getElementById('adNoAdmin').style.display = 'block';
+      document.getElementById('adNamaInput').value = '';
+    }
+  } catch(_){}
+
+  document.getElementById('accessDenied').style.display = 'block';
+}
+
+async function claimAdminBtn(){
+  const nama = document.getElementById('adNamaInput').value.trim();
+  if (!nama){ toast('Isi nama lengkap dulu.', 'error'); return; }
+  showLoading(true);
+  try {
+    const r = await gas('claimAdmin', nama);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    setTimeout(() => location.reload(), 1200);
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
 
 // =============== DASHBOARD ===============
 async function loadDashboard(){

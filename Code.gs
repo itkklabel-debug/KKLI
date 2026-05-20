@@ -162,8 +162,8 @@ function initSetup() {
   // user default admin jika kosong
   const userSh = ss.getSheetByName(SHEET_USER);
   if (userSh.getLastRow() < 2) {
-    const me = Session.getActiveUser().getEmail() || 'admin@example.com';
-    userSh.appendRow([me, 'Administrator', 'Admin', 'Active', '', new Date()]);
+    const me = (Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || '').trim();
+    if (me) userSh.appendRow([me, 'Administrator', 'Admin', 'Active', '', new Date()]);
   }
 }
 
@@ -242,19 +242,89 @@ function getCurrentUser(){
 
 /**
  * Cek role user dari sheet User. Return {nama, role, status, found}.
+ * Pembandingan trim() + toLowerCase() agar tahan spasi tersembunyi & beda case.
  */
 function getUserRole(email){
   if (!email) return { nama:'', role:'Guest', status:'Inactive', found:false };
+  const target = String(email).trim().toLowerCase();
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
   const data = sh.getDataRange().getValues();
   for (let i=1; i<data.length; i++){
-    if (String(data[i][0]).toLowerCase() === String(email).toLowerCase()){
+    const cell = String(data[i][0]||'').trim().toLowerCase();
+    if (cell === target){
+      // bersihkan email di sheet supaya konsisten
+      if (String(data[i][0]) !== cell){
+        try { sh.getRange(i+1, 1).setValue(cell); } catch(_){}
+      }
       // update terakhir akses
       sh.getRange(i+1, 5).setValue(new Date());
       return { nama:data[i][1], role:data[i][2], status:data[i][3], found:true };
     }
   }
   return { nama:'', role:'Guest', status:'Inactive', found:false };
+}
+
+/**
+ * Debug helper: cek email apa yang dilihat Apps Script untuk user yang sedang
+ * akses web app. Bisa dijalankan dari editor (Tools > Apps Script).
+ */
+function whoami(){
+  const active    = Session.getActiveUser().getEmail();
+  const effective = Session.getEffectiveUser().getEmail();
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
+  const data = sh ? sh.getDataRange().getValues().slice(1) : [];
+  const registered = data.map(r => ({ email:String(r[0]||'').trim(), role:r[2], status:r[3] }));
+  const result = {
+    detected_active_user:    active    || '(kosong - Workspace privacy)',
+    detected_effective_user: effective || '(kosong)',
+    registered_users:        registered,
+    match_check: registered.some(u => u.email.toLowerCase() === String(active||'').trim().toLowerCase())
+                 ? 'COCOK ✓ — email Anda terdaftar'
+                 : 'TIDAK COCOK ✗ — email Anda belum ada di sheet User'
+  };
+  Logger.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+/**
+ * Self-register: jika belum ada Admin Aktif di sheet User, user yang sedang
+ * akses bisa mendaftarkan dirinya sebagai Admin. Ini fallback aman jika baris
+ * admin default di initSetup tidak terbentuk (mis. karena Session email kosong).
+ */
+function claimAdmin(namaLengkap){
+  try {
+    const email = (Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || '').trim();
+    if (!email) throw new Error('Email Anda tidak terdeteksi oleh Apps Script. Pastikan Anda login dengan akun Google yang sama, dan deploy web app menggunakan "Execute as: Me".');
+
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
+    const data = sh.getDataRange().getValues();
+
+    // Cek apakah sudah ada Admin Aktif lain
+    let hasActiveAdmin = false;
+    let myRow = -1;
+    for (let i=1; i<data.length; i++){
+      const e = String(data[i][0]||'').trim().toLowerCase();
+      const role   = String(data[i][2]||'').trim();
+      const status = String(data[i][3]||'').trim();
+      if (role === 'Admin' && status === 'Active' && e !== email.toLowerCase()) hasActiveAdmin = true;
+      if (e === email.toLowerCase()) myRow = i+1;
+    }
+    if (hasActiveAdmin) throw new Error('Sudah ada Admin Aktif lain. Minta Admin tersebut untuk menambahkan akun Anda.');
+
+    if (myRow > 0){
+      // sudah ada baris saya, tinggal aktifkan & jadikan admin
+      sh.getRange(myRow, 1).setValue(email);
+      sh.getRange(myRow, 2).setValue(namaLengkap || sh.getRange(myRow,2).getValue() || 'Administrator');
+      sh.getRange(myRow, 3).setValue('Admin');
+      sh.getRange(myRow, 4).setValue('Active');
+      sh.getRange(myRow, 5).setValue(new Date());
+    } else {
+      sh.appendRow([email, namaLengkap || 'Administrator', 'Admin', 'Active', new Date(), new Date()]);
+    }
+    return { ok:true, message:'Berhasil! Anda sekarang terdaftar sebagai Admin: ' + email };
+  } catch(err){
+    return logAndReturnError_('claimAdmin','User',err,{namaLengkap});
+  }
 }
 
 function requireRole_(roles){
@@ -600,18 +670,19 @@ function saveUser(formData){
   try {
     requireRole_(['Admin']);
     const f = formData || {};
-    if (!isValidEmail_(f.email)) throw new Error('Format email tidak valid.');
+    const email = String(f.email||'').trim();
+    if (!isValidEmail_(email)) throw new Error('Format email tidak valid.');
     if (!f.nama) throw new Error('Nama wajib diisi.');
     if (['Admin','Staff','Viewer'].indexOf(f.role) === -1) throw new Error('Role harus Admin/Staff/Viewer.');
 
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
     const data = sh.getDataRange().getValues();
     for (let i=1;i<data.length;i++){
-      if (String(data[i][0]).toLowerCase() === String(f.email).toLowerCase()){
-        throw new Error('Email sudah terdaftar: ' + f.email);
+      if (String(data[i][0]||'').trim().toLowerCase() === email.toLowerCase()){
+        throw new Error('Email sudah terdaftar: ' + email);
       }
     }
-    sh.appendRow([f.email, f.nama, f.role, f.status || 'Active', '', new Date()]);
+    sh.appendRow([email, String(f.nama).trim(), f.role, f.status || 'Active', '', new Date()]);
     return { ok:true, message:'User berhasil ditambahkan.' };
   } catch(err){
     sendErrorEmail_('Tambah User gagal', err.message, formData);
@@ -622,14 +693,16 @@ function saveUser(formData){
 function updateUserRole(email, role, status){
   try {
     requireRole_(['Admin']);
-    if (!isValidEmail_(email)) throw new Error('Email tidak valid.');
+    const target = String(email||'').trim();
+    if (!isValidEmail_(target)) throw new Error('Email tidak valid.');
     if (['Admin','Staff','Viewer'].indexOf(role) === -1) throw new Error('Role tidak valid.');
     if (['Active','Inactive'].indexOf(status) === -1) throw new Error('Status tidak valid.');
 
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
     const data = sh.getDataRange().getValues();
     for (let i=1;i<data.length;i++){
-      if (String(data[i][0]).toLowerCase() === String(email).toLowerCase()){
+      if (String(data[i][0]||'').trim().toLowerCase() === target.toLowerCase()){
+        sh.getRange(i+1, 1).setValue(target);
         sh.getRange(i+1, 3).setValue(role);
         sh.getRange(i+1, 4).setValue(status);
         return { ok:true, message:'User diupdate.' };
