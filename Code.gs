@@ -42,6 +42,10 @@ const HEADER_TRX = ['ID_Transaksi','Tanggal','Tipe','ID_Barang','Nama_Barang','Q
 const HEADER_USER = ['Email','Nama_Lengkap','Role','Status','Terakhir_Akses','Dibuat_Pada','Password'];
 const HEADER_LOG  = ['Waktu','Aksi','Lokasi','Pesan_Error','Data_Gagal','User_Email'];
 
+const SHEET_PR    = 'Purchase_Requisition';
+const HEADER_PR   = ['ID_PR','Tanggal','ID_Barang','Nama_Barang','Qty','Satuan',
+  'Keterangan','Status','Dibuat_Oleh','Disetujui_Oleh','Tanggal_Respon','Catatan_Admin'];
+
 const DEFAULT_SETTINGS = {
   emailAlert        : '',          // diisi via menu Pengaturan
   jamAlert          : '08:00',
@@ -146,6 +150,7 @@ function initSetup() {
   ensureSheet_(ss, SHEET_TRANSAKSI, HEADER_TRX);
   ensureSheet_(ss, SHEET_USER,      HEADER_USER);
   ensureSheet_(ss, SHEET_LOG,       HEADER_LOG);
+  ensureSheet_(ss, SHEET_PR,        HEADER_PR);
 
   // pastikan folder ada
   const root = getOrCreateFolder_(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
@@ -480,9 +485,22 @@ function getDashboardData(){
     const trxItems = t.slice(1);
     const last7 = trxItems.filter(r => r[1] && (today - new Date(r[1]))/(1000*60*60*24) <= 7);
 
+    // PR Pending (untuk alert)
+    const prSh = ss.getSheetByName(SHEET_PR);
+    let prPending = 0;
+    if (prSh && prSh.getLastRow() > 1){
+      const prData = prSh.getDataRange().getValues();
+      for (let i=1;i<prData.length;i++){
+        if (prData[i][7] === 'Pending'){
+          prPending++;
+          alertList.push({ tipe:'PR Baru', pesan:`${prData[i][3]} qty ${prData[i][4]} oleh ${prData[i][8]}`, waktu:prData[i][1] });
+        }
+      }
+    }
+
     return {
       ok:true,
-      totalItem, hampirHabis, expired,
+      totalItem, hampirHabis, expired, prPending,
       totalTransaksi7Hari: last7.length,
       stokRendah: stokRendah.slice(0,10),
       alerts: alertList.slice(0,10)
@@ -1075,6 +1093,130 @@ function createTimeDrivenTriggers(){
   ScriptApp.newTrigger('backupData').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(23).create();
   ScriptApp.newTrigger('sendMonthlyReport').timeBased().onMonthDay(1).atHour(8).create();
   return { ok:true, message:'Trigger otomatis dibuat.' };
+}
+
+// =============================================================================
+//  PURCHASE REQUISITION
+// =============================================================================
+function generateIdPR_(){
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss');
+  return 'PR-' + stamp;
+}
+
+/**
+ * Simpan Purchase Requisition baru (Staff/Admin).
+ * formData: { idBarang, qty, keterangan }
+ */
+function savePR(formData, _auth){
+  try {
+    const u = requireRole_(['Admin','Staff'], _auth);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const shPR = ss.getSheetByName(SHEET_PR);
+    const shM  = ss.getSheetByName(SHEET_MASTER);
+    const f = formData || {};
+
+    if (!f.idBarang) throw new Error('Barang wajib dipilih.');
+    if (!isNumber_(f.qty) || Number(f.qty) <= 0) throw new Error('Qty harus angka > 0.');
+
+    // Cari nama barang
+    const data = shM.getDataRange().getValues();
+    let namaBarang = '', satuan = '';
+    for (let i=1;i<data.length;i++){
+      if (data[i][0] === f.idBarang && data[i][13] === 'Active'){
+        namaBarang = data[i][1];
+        satuan = data[i][7] || 'pcs';
+        break;
+      }
+    }
+    if (!namaBarang) throw new Error('Barang tidak ditemukan/aktif.');
+
+    const id = generateIdPR_();
+    shPR.appendRow([
+      id,
+      new Date(),
+      f.idBarang,
+      namaBarang,
+      Number(f.qty),
+      satuan,
+      f.keterangan || '',
+      'Pending',
+      u.email,
+      '',
+      '',
+      ''
+    ]);
+
+    return { ok:true, id:id, message:'Purchase Requisition berhasil dibuat.' };
+  } catch(err){
+    return logAndReturnError_('savePR','PurchaseRequisition',err,formData);
+  }
+}
+
+/**
+ * Ambil daftar PR. Staff hanya lihat milik sendiri, Admin lihat semua.
+ */
+function getPRList(filter, _auth){
+  try {
+    const u = requireRole_(['Admin','Staff'], _auth);
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PR);
+    let rows = sh.getDataRange().getValues().slice(1).map(r => rowToObj_(HEADER_PR, r));
+
+    // Staff hanya lihat PR milik sendiri
+    if (u.role === 'Staff'){
+      rows = rows.filter(r => String(r.Dibuat_Oleh).toLowerCase() === u.email.toLowerCase());
+    }
+
+    if (filter){
+      if (filter.status) rows = rows.filter(r => r.Status === filter.status);
+    }
+
+    rows.sort((a,b) => new Date(b.Tanggal) - new Date(a.Tanggal));
+    return { ok:true, data: rows };
+  } catch(err){ return logAndReturnError_('getPRList','PurchaseRequisition',err); }
+}
+
+/**
+ * Admin approve PR. Status -> Approved.
+ */
+function approvePR(idPR, catatan, _auth){
+  try {
+    const u = requireRole_(['Admin'], _auth);
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PR);
+    const data = sh.getDataRange().getValues();
+    for (let i=1;i<data.length;i++){
+      if (data[i][0] === idPR){
+        if (data[i][7] !== 'Pending') throw new Error('PR ini sudah diproses sebelumnya.');
+        sh.getRange(i+1, 8).setValue('Approved');
+        sh.getRange(i+1, 10).setValue(u.email);
+        sh.getRange(i+1, 11).setValue(new Date());
+        sh.getRange(i+1, 12).setValue(catatan || '');
+        return { ok:true, message:'PR ' + idPR + ' disetujui.' };
+      }
+    }
+    throw new Error('PR tidak ditemukan.');
+  } catch(err){ return logAndReturnError_('approvePR','PurchaseRequisition',err,{idPR}); }
+}
+
+/**
+ * Admin reject PR. Status -> Rejected.
+ */
+function rejectPR(idPR, catatan, _auth){
+  try {
+    const u = requireRole_(['Admin'], _auth);
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_PR);
+    const data = sh.getDataRange().getValues();
+    for (let i=1;i<data.length;i++){
+      if (data[i][0] === idPR){
+        if (data[i][7] !== 'Pending') throw new Error('PR ini sudah diproses sebelumnya.');
+        sh.getRange(i+1, 8).setValue('Rejected');
+        sh.getRange(i+1, 10).setValue(u.email);
+        sh.getRange(i+1, 11).setValue(new Date());
+        sh.getRange(i+1, 12).setValue(catatan || '');
+        return { ok:true, message:'PR ' + idPR + ' ditolak.' };
+      }
+    }
+    throw new Error('PR tidak ditemukan.');
+  } catch(err){ return logAndReturnError_('rejectPR','PurchaseRequisition',err,{idPR}); }
 }
 
 // =============================================================================

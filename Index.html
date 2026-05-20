@@ -123,6 +123,7 @@
       <div class="sidebar-link" data-view="master">📦 <span>Master Barang</span></div>
       <div class="sidebar-link" data-view="transaksi">🔄 <span>Transaksi</span></div>
       <div class="sidebar-link" data-view="laporan">📈 <span>Laporan</span></div>
+      <div class="sidebar-link staff-admin-only" data-view="pr">📋 <span>Purchase Requisition</span></div>
       <div class="sidebar-link admin-only" data-view="users">👥 <span>Manajemen User</span></div>
       <div class="sidebar-link admin-only" data-view="log">⚠ <span>Log &amp; Validasi</span></div>
       <div class="sidebar-link admin-only" data-view="settings">⚙ <span>Pengaturan</span></div>
@@ -154,6 +155,9 @@
         <div class="card-stat border-l-4 border-amber-500"><div class="text-xs text-slate-500 uppercase tracking-wide">Stok Menipis</div><div class="text-3xl font-bold text-amber-600 mt-1" id="statLow">0</div><div class="text-xs text-slate-400 mt-1">≤ minimum stok</div></div>
         <div class="card-stat border-l-4 border-red-500"><div class="text-xs text-slate-500 uppercase tracking-wide">Akan Expired</div><div class="text-3xl font-bold text-red-600 mt-1" id="statExp">0</div><div class="text-xs text-slate-400 mt-1">≤ 7 hari</div></div>
         <div class="card-stat border-l-4 border-blue-500"><div class="text-xs text-slate-500 uppercase tracking-wide">Transaksi 7 Hari</div><div class="text-3xl font-bold text-blue-600 mt-1" id="statTrx">0</div><div class="text-xs text-slate-400 mt-1">Masuk + Keluar</div></div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 staff-admin-only">
+        <div class="card-stat border-l-4 border-purple-500"><div class="text-xs text-slate-500 uppercase tracking-wide">PR Pending</div><div class="text-3xl font-bold text-purple-600 mt-1" id="statPR">0</div><div class="text-xs text-slate-400 mt-1">Menunggu approval</div></div>
       </div>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white rounded-xl shadow-sm p-5">
@@ -289,6 +293,41 @@
           <thead><tr><th>No</th><th>ID Trx</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Keterangan</th><th>User</th></tr></thead>
           <tbody id="repKeluarBody"></tbody>
         </table></div>
+      </div>
+    </section>
+ 
+    <!-- VIEW: PURCHASE REQUISITION -->
+    <section id="view-pr" class="view">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h1 class="text-2xl font-bold text-slate-800">Purchase Requisition</h1>
+        <div class="flex gap-2">
+          <select id="prFilterStatus" class="select max-w-[160px]" onchange="loadPR()">
+            <option value="">Semua Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Form Input PR (Staff & Admin) -->
+        <div class="bg-white rounded-xl shadow-sm p-5 lg:col-span-1">
+          <h3 class="font-semibold text-slate-800 mb-3">Buat PR Baru</h3>
+          <form id="formPR" class="space-y-3" onsubmit="submitPR(event)">
+            <div><label class="text-xs font-medium text-slate-600">Barang *</label><select id="prBarang" class="select" required><option value="">-- pilih barang --</option></select></div>
+            <div><label class="text-xs font-medium text-slate-600">Qty *</label><input id="prQty" type="number" min="1" class="input" required></div>
+            <div><label class="text-xs font-medium text-slate-600">Keterangan / Alasan</label><textarea id="prKet" class="textarea" rows="3" placeholder="Contoh: Stok sudah menipis, perlu restock"></textarea></div>
+            <button class="btn btn-primary w-full justify-center" type="submit">📋 Ajukan PR</button>
+          </form>
+        </div>
+        <!-- Tabel List PR -->
+        <div class="bg-white rounded-xl shadow-sm p-5 lg:col-span-2">
+          <h3 class="font-semibold text-slate-800 mb-3">Daftar Purchase Requisition</h3>
+          <div class="overflow-x-auto"><table>
+            <thead><tr><th>ID</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Oleh</th><th>Status</th><th>Catatan</th><th class="admin-only-cell">Aksi</th></tr></thead>
+            <tbody id="prBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+          </table></div>
+        </div>
       </div>
     </section>
  
@@ -525,6 +564,11 @@ function enterApp(){
   // Sembunyikan menu admin-only jika bukan admin
   const adminOnly = STATE.user.role === 'Admin';
   document.querySelectorAll('.admin-only').forEach(x => x.style.display = adminOnly ? '' : 'none');
+  // Menu PR: tampil untuk Staff & Admin
+  const staffOrAdmin = (STATE.user.role === 'Admin' || STATE.user.role === 'Staff');
+  document.querySelectorAll('.staff-admin-only').forEach(x => x.style.display = staffOrAdmin ? '' : 'none');
+  // Kolom aksi PR hanya untuk Admin
+  document.querySelectorAll('.admin-only-cell').forEach(x => x.style.display = adminOnly ? '' : 'none');
  
   // Pindah dari login screen ke main app
   document.getElementById('loginScreen').style.display = 'none';
@@ -564,6 +608,7 @@ function routeView(v){
   else if (v === 'master') loadMaster();
   else if (v === 'transaksi') { loadMaster().then(()=>{ fillBarangSelect(); loadTrx(); }); }
   else if (v === 'laporan')  loadLaporan();
+  else if (v === 'pr')       { loadMaster().then(()=>{ fillPRBarangSelect(); loadPR(); }); }
   else if (v === 'users')    loadUsers();
   else if (v === 'log')      loadLog();
   else if (v === 'settings') loadSettings();
@@ -684,6 +729,7 @@ async function loadDashboard(){
     document.getElementById('statLow').textContent   = r.hampirHabis;
     document.getElementById('statExp').textContent   = r.expired;
     document.getElementById('statTrx').textContent   = r.totalTransaksi7Hari;
+    document.getElementById('statPR').textContent    = r.prPending || 0;
 
     // Render chart stok terendah
     renderLowStockChart(r.stokRendah);
@@ -696,7 +742,7 @@ async function loadDashboard(){
       <td>${x.min}</td></tr>`).join('') : `<tr><td colspan="4" class="text-center text-slate-400 py-6">Stok aman</td></tr>`;
     const al = document.getElementById('alertList');
     al.innerHTML = r.alerts.length ? r.alerts.map(a => `<div class="flex items-start gap-2 p-3 bg-slate-50 rounded-lg">
-      <span class="badge ${a.tipe==='Expired'?'badge-red':'badge-yellow'}">${escapeHtml(a.tipe)}</span>
+      <span class="badge ${a.tipe==='Expired'?'badge-red':(a.tipe==='PR Baru'?'badge-blue':'badge-yellow')}">${escapeHtml(a.tipe)}</span>
       <span class="text-slate-700">${escapeHtml(a.pesan)}</span></div>`).join('') : `<div class="text-slate-400 text-center py-6">Tidak ada alert</div>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
@@ -1076,6 +1122,90 @@ async function manualAlert(){
   showLoading(true);
   try { const r = await safeGas('checkAndSendAlerts'); if (!r.ok) throw new Error(r.message); toast(r.message, 'success'); }
   catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+ 
+// =============== PURCHASE REQUISITION ===============
+function fillPRBarangSelect(){
+  const sel = document.getElementById('prBarang');
+  sel.innerHTML = '<option value="">-- pilih barang --</option>' +
+    STATE.master.filter(x => x.Status === 'Active')
+      .map(x => `<option value="${escapeHtml(x.ID_Barang)}">${escapeHtml(x.Nama_Barang)} (stok: ${x.Stok_Akhir} ${escapeHtml(x.Satuan||'')})</option>`)
+      .join('');
+}
+
+async function loadPR(){
+  showLoading(true);
+  try {
+    const filter = { status: document.getElementById('prFilterStatus').value };
+    const r = await gasAuth('getPRList', filter);
+    if (!r.ok) throw new Error(r.message);
+    const rows = r.data || [];
+    const isAdmin = STATE.user.role === 'Admin';
+    const tbody = document.getElementById('prBody');
+    tbody.innerHTML = rows.length ? rows.map(pr => {
+      const statusBadge = pr.Status === 'Pending' ? 'badge-yellow' : (pr.Status === 'Approved' ? 'badge-green' : 'badge-red');
+      return `<tr>
+        <td class="font-mono text-xs">${escapeHtml(pr.ID_PR)}</td>
+        <td>${fmtDate(pr.Tanggal)}</td>
+        <td>${escapeHtml(pr.Nama_Barang)}</td>
+        <td class="font-medium">${fmtNum(pr.Qty)} ${escapeHtml(pr.Satuan||'')}</td>
+        <td class="text-xs">${escapeHtml(pr.Dibuat_Oleh||'-')}</td>
+        <td><span class="badge ${statusBadge}">${escapeHtml(pr.Status)}</span></td>
+        <td class="text-xs">${escapeHtml(pr.Catatan_Admin||'-')}</td>
+        <td class="admin-only-cell">${pr.Status === 'Pending' && isAdmin ? `
+          <button class="btn btn-success text-xs" style="padding:4px 8px;font-size:11px" onclick="doApprovePR('${escapeHtml(pr.ID_PR)}')">✓ Setuju</button>
+          <button class="btn btn-danger text-xs ml-1" style="padding:4px 8px;font-size:11px" onclick="doRejectPR('${escapeHtml(pr.ID_PR)}')">✗ Tolak</button>
+        ` : (pr.Status !== 'Pending' ? `<span class="text-xs text-slate-400">${escapeHtml(pr.Disetujui_Oleh||'')}</span>` : '')}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="8" class="text-center text-slate-400 py-6">Belum ada PR</td></tr>`;
+    // hide aksi column for non-admin
+    document.querySelectorAll('.admin-only-cell').forEach(x => x.style.display = isAdmin ? '' : 'none');
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function submitPR(e){
+  e.preventDefault();
+  showLoading(true);
+  try {
+    const data = {
+      idBarang:   document.getElementById('prBarang').value,
+      qty:        document.getElementById('prQty').value,
+      keterangan: document.getElementById('prKet').value
+    };
+    const r = await gasAuth('savePR', data);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    document.getElementById('formPR').reset();
+    await loadPR();
+  } catch(err){ toast(err.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function doApprovePR(id){
+  const catatan = prompt('Catatan persetujuan (opsional):') || '';
+  if (catatan === null) return; // user cancel
+  showLoading(true);
+  try {
+    const r = await gasAuth('approvePR', id, catatan);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    await loadPR();
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function doRejectPR(id){
+  const catatan = prompt('Alasan penolakan:');
+  if (!catatan) { toast('Alasan penolakan wajib diisi.', 'error'); return; }
+  showLoading(true);
+  try {
+    const r = await gasAuth('rejectPR', id, catatan);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    await loadPR();
+  } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
 </script>
