@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplikasi Stok Barang</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+  .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px;
+                  color:#cbd5e1; cursor:pointer; transition:.15s; font-size:14px; }
+  .sidebar-link:hover { background:#1e293b; color:#fff; }
+  .sidebar-link.active { background:#2563eb; color:#fff; box-shadow:0 4px 12px rgba(37,99,235,.35); }
+  .card-stat { background:#fff; border-radius:14px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-weight:500;
+         font-size:14px; cursor:pointer; transition:.15s; border:0; }
+  .btn-primary { background:#2563eb; color:#fff; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .btn-secondary { background:#e5e7eb; color:#111827; }
+  .btn-secondary:hover { background:#d1d5db; }
+  .btn-danger { background:#dc2626; color:#fff; }
+  .btn-danger:hover { background:#b91c1c; }
+  .btn-success { background:#16a34a; color:#fff; }
+  .btn-success:hover { background:#15803d; }
+  .input, .select, .textarea {
+    width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;
+    background:#fff; outline:none; transition:.15s;
+  }
+  .input:focus, .select:focus, .textarea:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { padding:10px 12px; text-align:left; border-bottom:1px solid #e5e7eb; }
+  th { background:#f9fafb; font-weight:600; color:#374151; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  tbody tr:hover { background:#f9fafb; }
+  .badge { padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; display:inline-block; }
+  .badge-green { background:#dcfce7; color:#166534; }
+  .badge-red   { background:#fee2e2; color:#991b1b; }
+  .badge-yellow{ background:#fef3c7; color:#92400e; }
+  .badge-blue  { background:#dbeafe; color:#1e40af; }
+  .badge-gray  { background:#e5e7eb; color:#374151; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.55); display:none; align-items:center;
+                   justify-content:center; z-index:50; padding:20px; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:#fff; border-radius:14px; max-width:640px; width:100%; max-height:92vh; overflow-y:auto; }
+  .toast { position:fixed; top:24px; right:24px; padding:14px 20px; border-radius:10px; color:#fff;
+           font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.18); z-index:100; opacity:0;
+           transform:translateY(-12px); transition:.25s; min-width:260px; }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast-success { background:#16a34a; }
+  .toast-error   { background:#dc2626; }
+  .toast-info    { background:#2563eb; }
+  .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.75); display:none;
+                     align-items:center; justify-content:center; z-index:200; }
+  .loading-overlay.show { display:flex; }
+  .spinner { width:48px; height:48px; border:5px solid #e5e7eb; border-top-color:#2563eb;
+             border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .view { display:none; }
+  .view.active { display:block; }
+  @media (max-width: 768px){
+    #sidebar { position:fixed; left:-260px; top:0; bottom:0; z-index:40; transition:left .25s; }
+    #sidebar.open { left:0; }
+    #main { margin-left:0 !important; }
+  }
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- LOADING -->
+<div id="loading" class="loading-overlay"><div class="spinner"></div></div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<!-- LAYOUT -->
+<div class="flex">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="w-60 bg-slate-900 text-white min-h-screen p-4 flex-shrink-0">
+    <div class="flex items-center gap-2 mb-6 px-2">
+      <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center font-bold">SB</div>
+      <div>
+        <div class="font-semibold text-sm">Stok Barang</div>
+        <div class="text-xs text-slate-400">Inventory App</div>
+      </div>
+    </div>
+    <nav class="space-y-1" id="menu">
+      <div class="sidebar-link active" data-view="dashboard">📊 <span>Dashboard</span></div>
+      <div class="sidebar-link" data-view="master">📦 <span>Master Barang</span></div>
+      <div class="sidebar-link" data-view="transaksi">🔄 <span>Transaksi</span></div>
+      <div class="sidebar-link" data-view="laporan">📈 <span>Laporan</span></div>
+      <div class="sidebar-link admin-only" data-view="users">👥 <span>Manajemen User</span></div>
+      <div class="sidebar-link admin-only" data-view="log">⚠ <span>Log &amp; Validasi</span></div>
+      <div class="sidebar-link admin-only" data-view="settings">⚙ <span>Pengaturan</span></div>
+    </nav>
+    <div class="absolute bottom-4 left-4 right-4 text-xs text-slate-400">
+      <div id="userBox" class="bg-slate-800 rounded-lg p-3">
+        <div class="font-medium text-white truncate" id="userName">-</div>
+        <div class="truncate" id="userEmail">-</div>
+        <div class="mt-1"><span id="userRoleBadge" class="badge badge-blue">-</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main" class="flex-1 p-6 md:p-8 ml-0">
+    <!-- TOPBAR (mobile) -->
+    <div class="flex items-center justify-between mb-4 md:hidden">
+      <button class="btn btn-secondary" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Menu</button>
+      <div class="text-sm text-slate-600" id="userEmailMobile">-</div>
+    </div>
+
+    <!-- VIEW: DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <h1 class="text-2xl font-bold text-slate-800 mb-1">Dashboard</h1>
+      <p class="text-slate-500 mb-6">Ringkasan stok &amp; alert terkini</p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card-stat">
+          <div class="text-xs text-slate-500 uppercase tracking-wide">Total Item</div>
+          <div class="text-3xl font-bold text-slate-800 mt-1" id="statTotal">0</div>
+          <div class="text-xs text-slate-400 mt-1">Barang aktif</div>
+        </div>
+        <div class="card-stat border-l-4 border-amber-500">
+          <div class="text-xs text-slate-500 uppercase tracking-wide">Stok Menipis</div>
+          <div class="text-3xl font-bold text-amber-600 mt-1" id="statLow">0</div>
+          <div class="text-xs text-slate-400 mt-1">≤ minimum stok</div>
+        </div>
+        <div class="card-stat border-l-4 border-red-500">
+          <div class="text-xs text-slate-500 uppercase tracking-wide">Akan Expired</div>
+          <div class="text-3xl font-bold text-red-600 mt-1" id="statExp">0</div>
+          <div class="text-xs text-slate-400 mt-1">≤ 7 hari</div>
+        </div>
+        <div class="card-stat border-l-4 border-blue-500">
+          <div class="text-xs text-slate-500 uppercase tracking-wide">Transaksi 7 Hari</div>
+          <div class="text-3xl font-bold text-blue-600 mt-1" id="statTrx">0</div>
+          <div class="text-xs text-slate-400 mt-1">Masuk + Keluar</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-5">
+          <h3 class="font-semibold text-slate-800 mb-3">📉 10 Barang Stok Terendah</h3>
+          <div class="overflow-x-auto"><table>
+            <thead><tr><th>ID</th><th>Nama</th><th>Stok</th><th>Min</th></tr></thead>
+            <tbody id="lowStockBody"><tr><td colspan="4" class="text-center text-slate-400 py-6">Tidak ada data</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-5">
+          <h3 class="font-semibold text-slate-800 mb-3">🔔 Alert Terbaru</h3>
+          <div id="alertList" class="space-y-2 text-sm">
+            <div class="text-slate-400 text-center py-6">Tidak ada alert</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: MASTER -->
+    <section id="view-master" class="view">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h1 class="text-2xl font-bold text-slate-800">Master Barang</h1>
+        <button class="btn btn-primary" onclick="openBarangModal()">+ Tambah Barang</button>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5">
+        <div class="flex flex-wrap gap-3 mb-4">
+          <input id="searchBarang" class="input flex-1 min-w-[180px]" placeholder="🔍 Cari nama / ID..." oninput="renderMaster()">
+          <select id="filterKategori" class="select max-w-[200px]" onchange="renderMaster()">
+            <option value="">Semua Kategori</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr>
+            <th>ID</th><th>Nama</th><th>Kategori</th><th>Stok</th><th>Satuan</th>
+            <th>Min</th><th>Expired</th><th>Status</th><th>Aksi</th>
+          </tr></thead>
+          <tbody id="masterBody"><tr><td colspan="9" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- VIEW: TRANSAKSI -->
+    <section id="view-transaksi" class="view">
+      <h1 class="text-2xl font-bold text-slate-800 mb-4">Transaksi Stok</h1>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Form transaksi -->
+        <div class="bg-white rounded-xl shadow-sm p-5 lg:col-span-1">
+          <h3 class="font-semibold text-slate-800 mb-3">Input Transaksi</h3>
+          <form id="formTrx" class="space-y-3" onsubmit="submitTrx(event)">
+            <div>
+              <label class="text-xs font-medium text-slate-600">Tipe</label>
+              <select id="trxTipe" class="select" required>
+                <option value="Masuk">📥 Stok Masuk</option>
+                <option value="Keluar">📤 Stok Keluar</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Tanggal</label>
+              <input id="trxTanggal" type="date" class="input" required>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Barang</label>
+              <select id="trxBarang" class="select" required>
+                <option value="">-- pilih barang --</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Qty</label>
+              <input id="trxQty" type="number" min="1" class="input" required>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Keterangan</label>
+              <textarea id="trxKet" class="textarea" rows="2"></textarea>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Bukti / Nota (opsional)</label>
+              <input id="trxFile" type="file" class="input" accept="image/*,.pdf">
+            </div>
+            <button class="btn btn-primary w-full justify-center" type="submit">💾 Simpan Transaksi</button>
+          </form>
+        </div>
+
+        <!-- Riwayat -->
+        <div class="bg-white rounded-xl shadow-sm p-5 lg:col-span-2">
+          <h3 class="font-semibold text-slate-800 mb-3">Riwayat Transaksi</h3>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <input id="trxFrom" type="date" class="input max-w-[160px]">
+            <input id="trxTo" type="date" class="input max-w-[160px]">
+            <select id="trxFilterTipe" class="select max-w-[140px]">
+              <option value="">Semua Tipe</option>
+              <option value="Masuk">Masuk</option>
+              <option value="Keluar">Keluar</option>
+            </select>
+            <button class="btn btn-secondary" onclick="loadTrx()">Filter</button>
+          </div>
+          <div class="overflow-x-auto"><table>
+            <thead><tr>
+              <th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th>
+              <th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th>
+            </tr></thead>
+            <tbody id="trxBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: LAPORAN -->
+    <section id="view-laporan" class="view">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h1 class="text-2xl font-bold text-slate-800">Laporan</h1>
+        <div class="flex gap-2">
+          <button class="btn btn-secondary" onclick="exportCSV('master')">⬇ Export CSV Stok</button>
+          <button class="btn btn-secondary" onclick="exportCSV('trx')">⬇ Export CSV Transaksi</button>
+          <button class="btn btn-success" onclick="window.print()">🖨 Print PDF</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-5">
+          <h3 class="font-semibold text-slate-800 mb-3">Rekap Stok</h3>
+          <div class="overflow-x-auto"><table>
+            <thead><tr><th>ID</th><th>Nama</th><th>Stok Akhir</th><th>Nilai</th></tr></thead>
+            <tbody id="repStokBody"></tbody>
+          </table></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-5">
+          <h3 class="font-semibold text-slate-800 mb-3">Rekap Transaksi</h3>
+          <div class="overflow-x-auto"><table>
+            <thead><tr><th>Tipe</th><th>Jumlah Trx</th><th>Total Qty</th></tr></thead>
+            <tbody id="repTrxBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: USER -->
+    <section id="view-users" class="view">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h1 class="text-2xl font-bold text-slate-800">Manajemen User</h1>
+        <button class="btn btn-primary" onclick="openUserModal()">+ Tambah User</button>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5">
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>Email</th><th>Nama</th><th>Role</th><th>Status</th><th>Terakhir Akses</th><th>Aksi</th></tr></thead>
+          <tbody id="userBody"><tr><td colspan="6" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- VIEW: LOG -->
+    <section id="view-log" class="view">
+      <h1 class="text-2xl font-bold text-slate-800 mb-4">Log &amp; Validasi</h1>
+      <div class="bg-white rounded-xl shadow-sm p-5">
+        <div class="flex flex-wrap gap-2 mb-3">
+          <input id="logFrom" type="date" class="input max-w-[160px]">
+          <input id="logTo" type="date" class="input max-w-[160px]">
+          <input id="logUser" class="input max-w-[200px]" placeholder="Filter email user">
+          <button class="btn btn-secondary" onclick="loadLog()">Filter</button>
+          <button class="btn btn-danger" onclick="clearOldLogs()">🗑 Hapus Log &gt; 30 Hari</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>Waktu</th><th>Aksi</th><th>Lokasi</th><th>Pesan</th><th>User</th></tr></thead>
+          <tbody id="logBody"><tr><td colspan="5" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- VIEW: SETTINGS -->
+    <section id="view-settings" class="view">
+      <h1 class="text-2xl font-bold text-slate-800 mb-4">Pengaturan</h1>
+      <div class="bg-white rounded-xl shadow-sm p-5 max-w-xl">
+        <form id="formSettings" class="space-y-3" onsubmit="saveSettings(event)">
+          <div>
+            <label class="text-xs font-medium text-slate-600">Email Penerima Alert</label>
+            <input id="setEmail" type="email" class="input">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-slate-600">Jam Alert Harian</label>
+              <input id="setJam" type="time" class="input">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Hari Sebelum Expired</label>
+              <input id="setHari" type="number" min="1" class="input">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">Min Stok Global</label>
+            <input id="setMinStok" type="number" min="0" class="input">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">Nama Perusahaan</label>
+            <input id="setNama" class="input">
+          </div>
+          <div class="flex flex-wrap gap-2 pt-2">
+            <button type="submit" class="btn btn-primary">💾 Simpan</button>
+            <button type="button" class="btn btn-success" onclick="manualBackup()">📦 Backup Manual</button>
+            <button type="button" class="btn btn-secondary" onclick="manualAlert()">📧 Test Kirim Alert</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL: BARANG -->
+<div id="modalBarang" class="modal-overlay">
+  <div class="modal p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold text-slate-800" id="modalBarangTitle">Tambah Barang</h2>
+      <button class="text-slate-400 hover:text-slate-700 text-xl" onclick="closeModal('modalBarang')">×</button>
+    </div>
+    <form id="formBarang" class="space-y-3" onsubmit="submitBarang(event)">
+      <input type="hidden" id="brgId">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Nama Barang *</label>
+          <input id="brgNama" class="input" required>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Kategori</label>
+          <input id="brgKategori" class="input" list="kategoriList">
+          <datalist id="kategoriList"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Satuan</label>
+          <input id="brgSatuan" class="input" placeholder="pcs, box, kg" value="pcs">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Stok Awal *</label>
+          <input id="brgStokAwal" type="number" min="0" class="input" required value="0">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Min Stok Alert</label>
+          <input id="brgMinStok" type="number" min="0" class="input" value="5">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Harga Beli</label>
+          <input id="brgHargaBeli" type="number" min="0" class="input" value="0">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Harga Jual</label>
+          <input id="brgHargaJual" type="number" min="0" class="input" value="0">
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Tanggal Expired (opsional)</label>
+          <input id="brgExpired" type="date" class="input">
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs font-medium text-slate-600">Foto Barang (opsional)</label>
+          <input id="brgFile" type="file" class="input" accept="image/*">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalBarang')">Batal</button>
+        <button type="submit" class="btn btn-primary">💾 Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: USER -->
+<div id="modalUser" class="modal-overlay">
+  <div class="modal p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold text-slate-800" id="modalUserTitle">Tambah User</h2>
+      <button class="text-slate-400 hover:text-slate-700 text-xl" onclick="closeModal('modalUser')">×</button>
+    </div>
+    <form id="formUser" class="space-y-3" onsubmit="submitUser(event)">
+      <input type="hidden" id="usrMode" value="add">
+      <div>
+        <label class="text-xs font-medium text-slate-600">Email *</label>
+        <input id="usrEmail" type="email" class="input" required>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-slate-600">Nama Lengkap *</label>
+        <input id="usrNama" class="input" required>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium text-slate-600">Role *</label>
+          <select id="usrRole" class="select" required>
+            <option value="Admin">Admin</option>
+            <option value="Staff">Staff</option>
+            <option value="Viewer">Viewer</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Status</label>
+          <select id="usrStatus" class="select">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalUser')">Batal</button>
+        <button type="submit" class="btn btn-primary">💾 Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// =============== STATE ===============
+let STATE = {
+  user: { email:'', nama:'', role:'Guest', status:'Inactive' },
+  master: [],
+  trx: [],
+  users: []
+};
+
+// =============== UTIL ===============
+function showLoading(b){ document.getElementById('loading').classList.toggle('show', b); }
+function toast(msg, type='info'){
+  const t = document.getElementById('toast');
+  t.className = 'toast toast-' + type + ' show';
+  t.textContent = msg;
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+function fmtDate(d, t){
+  if (!d) return '-';
+  const x = new Date(d); if (isNaN(x)) return '-';
+  const dd = String(x.getDate()).padStart(2,'0');
+  const mm = String(x.getMonth()+1).padStart(2,'0');
+  const s = `${dd}/${mm}/${x.getFullYear()}`;
+  return t ? `${s} ${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}` : s;
+}
+function fmtNum(n){ return Number(n||0).toLocaleString('id-ID'); }
+function isoDate(d){ const x = new Date(d); return x.toISOString().slice(0,10); }
+function gas(fn, ...args){
+  return new Promise((res, rej) => {
+    google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args);
+  });
+}
+function fileToBase64(file){
+  return new Promise((res, rej) => {
+    if (!file) return res(null);
+    const r = new FileReader();
+    r.onload = () => res({ base64:r.result, name:file.name, type:file.type });
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+// =============== NAV ===============
+document.querySelectorAll('.sidebar-link').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-link').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    const v = el.dataset.view;
+    document.getElementById('view-' + v).classList.add('active');
+    document.getElementById('sidebar').classList.remove('open');
+    routeView(v);
+  });
+});
+
+function routeView(v){
+  if (v === 'dashboard') loadDashboard();
+  else if (v === 'master') loadMaster();
+  else if (v === 'transaksi') { loadMaster().then(()=>{ fillBarangSelect(); loadTrx(); }); }
+  else if (v === 'laporan')  loadLaporan();
+  else if (v === 'users')    loadUsers();
+  else if (v === 'log')      loadLog();
+  else if (v === 'settings') loadSettings();
+}
+
+// =============== INIT ===============
+window.addEventListener('DOMContentLoaded', async () => {
+  showLoading(true);
+  try {
+    const u = await gas('getCurrentUser');
+    STATE.user = u || STATE.user;
+    document.getElementById('userName').textContent  = u.nama  || '(belum terdaftar)';
+    document.getElementById('userEmail').textContent = u.email || '-';
+    document.getElementById('userEmailMobile').textContent = u.email || '';
+    const rb = document.getElementById('userRoleBadge');
+    rb.textContent = u.role || 'Guest';
+    rb.className = 'badge ' + (u.role === 'Admin' ? 'badge-blue' : (u.role === 'Staff' ? 'badge-green' : 'badge-gray'));
+
+    if (u.role !== 'Admin'){
+      document.querySelectorAll('.admin-only').forEach(x => x.style.display='none');
+    }
+    if (!u.found || u.status !== 'Active'){
+      toast('User belum terdaftar/aktif. Hubungi Admin untuk mendapat akses.', 'error');
+    }
+    document.getElementById('trxTanggal').value = isoDate(new Date());
+    await loadDashboard();
+  } catch(e){ toast('Gagal init: ' + e.message, 'error'); }
+  finally { showLoading(false); }
+});
+
+// =============== DASHBOARD ===============
+async function loadDashboard(){
+  showLoading(true);
+  try {
+    const r = await gas('getDashboardData');
+    if (!r.ok) throw new Error(r.message);
+    document.getElementById('statTotal').textContent = r.totalItem;
+    document.getElementById('statLow').textContent   = r.hampirHabis;
+    document.getElementById('statExp').textContent   = r.expired;
+    document.getElementById('statTrx').textContent   = r.totalTransaksi7Hari;
+
+    const lowBody = document.getElementById('lowStockBody');
+    lowBody.innerHTML = r.stokRendah.length ? r.stokRendah.map(x => `
+      <tr>
+        <td class="font-mono text-xs">${escapeHtml(x.id)}</td>
+        <td>${escapeHtml(x.nama)}</td>
+        <td><span class="badge ${x.stok<=x.min?'badge-red':'badge-yellow'}">${x.stok} ${escapeHtml(x.satuan||'')}</span></td>
+        <td>${x.min}</td>
+      </tr>`).join('') : `<tr><td colspan="4" class="text-center text-slate-400 py-6">Stok aman</td></tr>`;
+
+    const al = document.getElementById('alertList');
+    al.innerHTML = r.alerts.length ? r.alerts.map(a => `
+      <div class="flex items-start gap-2 p-3 bg-slate-50 rounded-lg">
+        <span class="badge ${a.tipe==='Expired'?'badge-red':'badge-yellow'}">${escapeHtml(a.tipe)}</span>
+        <span class="text-slate-700">${escapeHtml(a.pesan)}</span>
+      </div>`).join('') : `<div class="text-slate-400 text-center py-6">Tidak ada alert</div>`;
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+// =============== MASTER BARANG ===============
+async function loadMaster(){
+  showLoading(true);
+  try {
+    const r = await gas('getMasterBarang');
+    if (!r.ok) throw new Error(r.message);
+    STATE.master = r.data || [];
+    // build kategori options
+    const kats = [...new Set(STATE.master.map(x => x.Kategori).filter(Boolean))];
+    const fil = document.getElementById('filterKategori');
+    fil.innerHTML = '<option value="">Semua Kategori</option>' + kats.map(k => `<option>${escapeHtml(k)}</option>`).join('');
+    document.getElementById('kategoriList').innerHTML = kats.map(k => `<option value="${escapeHtml(k)}">`).join('');
+    renderMaster();
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+function renderMaster(){
+  const q = document.getElementById('searchBarang').value.toLowerCase();
+  const k = document.getElementById('filterKategori').value;
+  const rows = STATE.master.filter(x => {
+    if (k && x.Kategori !== k) return false;
+    if (q && !(String(x.Nama_Barang).toLowerCase().includes(q) || String(x.ID_Barang).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const tbody = document.getElementById('masterBody');
+  tbody.innerHTML = rows.length ? rows.map(x => {
+    const stok = Number(x.Stok_Akhir)||0, min = Number(x.Min_Stok_Alert)||0;
+    const stokBadge = stok <= 0 ? 'badge-red' : (stok <= min ? 'badge-yellow' : 'badge-green');
+    const stat = x.Status === 'Active' ? 'badge-green' : 'badge-gray';
+    return `<tr>
+      <td class="font-mono text-xs">${escapeHtml(x.ID_Barang)}</td>
+      <td>
+        <div class="font-medium">${escapeHtml(x.Nama_Barang)}</div>
+        ${x.Lokasi_Foto_Drive ? `<a href="${escapeHtml(x.Lokasi_Foto_Drive)}" target="_blank" class="text-xs text-blue-600">📎 Foto</a>` : ''}
+      </td>
+      <td>${escapeHtml(x.Kategori||'-')}</td>
+      <td><span class="badge ${stokBadge}">${stok} ${escapeHtml(x.Satuan||'')}</span></td>
+      <td>${escapeHtml(x.Satuan||'-')}</td>
+      <td>${min}</td>
+      <td>${x.Expired_Date ? fmtDate(x.Expired_Date) : '-'}</td>
+      <td><span class="badge ${stat}">${escapeHtml(x.Status)}</span></td>
+      <td>
+        <button class="text-blue-600 hover:underline text-sm" onclick='editBarang(${JSON.stringify(x.ID_Barang)})'>Edit</button>
+        ${STATE.user.role === 'Admin' ? `<button class="text-red-600 hover:underline text-sm ml-2" onclick='deleteBarang(${JSON.stringify(x.ID_Barang)})'>Hapus</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" class="text-center text-slate-400 py-6">Tidak ada barang</td></tr>`;
+}
+
+function openBarangModal(){
+  document.getElementById('modalBarangTitle').textContent = 'Tambah Barang';
+  document.getElementById('formBarang').reset();
+  document.getElementById('brgId').value = '';
+  document.getElementById('brgStokAwal').value = 0;
+  document.getElementById('brgMinStok').value = 5;
+  document.getElementById('brgSatuan').value = 'pcs';
+  openModal('modalBarang');
+}
+function editBarang(id){
+  const x = STATE.master.find(m => m.ID_Barang === id);
+  if (!x) return;
+  document.getElementById('modalBarangTitle').textContent = 'Edit Barang';
+  document.getElementById('brgId').value         = x.ID_Barang;
+  document.getElementById('brgNama').value       = x.Nama_Barang || '';
+  document.getElementById('brgKategori').value   = x.Kategori || '';
+  document.getElementById('brgSatuan').value     = x.Satuan || 'pcs';
+  document.getElementById('brgStokAwal').value   = x.Stok_Awal || 0;
+  document.getElementById('brgMinStok').value    = x.Min_Stok_Alert || 0;
+  document.getElementById('brgHargaBeli').value  = x.Harga_Beli || 0;
+  document.getElementById('brgHargaJual').value  = x.Harga_Jual || 0;
+  document.getElementById('brgExpired').value    = x.Expired_Date ? isoDate(x.Expired_Date) : '';
+  openModal('modalBarang');
+}
+
+async function submitBarang(e){
+  e.preventDefault();
+  showLoading(true);
+  try {
+    const id = document.getElementById('brgId').value;
+    const file = document.getElementById('brgFile').files[0];
+    const fileObj = await fileToBase64(file);
+    const data = {
+      id: id,
+      nama:        document.getElementById('brgNama').value.trim(),
+      kategori:    document.getElementById('brgKategori').value.trim(),
+      satuan:      document.getElementById('brgSatuan').value.trim(),
+      stokAwal:    document.getElementById('brgStokAwal').value,
+      minStok:     document.getElementById('brgMinStok').value,
+      hargaBeli:   document.getElementById('brgHargaBeli').value,
+      hargaJual:   document.getElementById('brgHargaJual').value,
+      expiredDate: document.getElementById('brgExpired').value,
+      fileBase64:  fileObj ? fileObj.base64 : '',
+      fileName:    fileObj ? fileObj.name   : '',
+      fileType:    fileObj ? fileObj.type   : ''
+    };
+    const r = await gas(id ? 'updateBarang' : 'saveBarang', data);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    closeModal('modalBarang');
+    await loadMaster();
+  } catch(err){ toast(err.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function deleteBarang(id){
+  if (!confirm('Yakin nonaktifkan barang ' + id + '?')) return;
+  showLoading(true);
+  try {
+    const r = await gas('deleteBarang', id);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    await loadMaster();
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+// =============== TRANSAKSI ===============
+function fillBarangSelect(){
+  const sel = document.getElementById('trxBarang');
+  sel.innerHTML = '<option value="">-- pilih barang --</option>' +
+    STATE.master.filter(x => x.Status === 'Active')
+      .map(x => `<option value="${escapeHtml(x.ID_Barang)}">${escapeHtml(x.Nama_Barang)} (stok: ${x.Stok_Akhir} ${escapeHtml(x.Satuan||'')})</option>`)
+      .join('');
+}
+
+async function loadTrx(){
+  showLoading(true);
+  try {
+    const filter = {
+      tanggalDari:   document.getElementById('trxFrom').value,
+      tanggalSampai: document.getElementById('trxTo').value,
+      tipe:          document.getElementById('trxFilterTipe').value
+    };
+    const r = await gas('getTransaksi', filter);
+    if (!r.ok) throw new Error(r.message);
+    STATE.trx = r.data || [];
+    const tbody = document.getElementById('trxBody');
+    tbody.innerHTML = STATE.trx.length ? STATE.trx.map(t => `
+      <tr>
+        <td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
+        <td>${fmtDate(t.Tanggal)}</td>
+        <td><span class="badge ${t.Tipe==='Masuk'?'badge-green':'badge-red'}">${escapeHtml(t.Tipe)}</span></td>
+        <td>${escapeHtml(t.Nama_Barang)}</td>
+        <td class="font-medium">${fmtNum(t.Qty)}</td>
+        <td>${fmtNum(t.Stok_Sesudahnya)}</td>
+        <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td>
+        <td>${t.Lampiran_Drive_ID ? `<a href="${escapeHtml(t.Lampiran_Drive_ID)}" target="_blank" class="text-blue-600 text-xs">📎</a>` : '-'}</td>
+      </tr>`).join('') : `<tr><td colspan="8" class="text-center text-slate-400 py-6">Belum ada transaksi</td></tr>`;
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function submitTrx(e){
+  e.preventDefault();
+  showLoading(true);
+  try {
+    const file = document.getElementById('trxFile').files[0];
+    const fileObj = await fileToBase64(file);
+    const data = {
+      tipe:       document.getElementById('trxTipe').value,
+      tanggal:    document.getElementById('trxTanggal').value,
+      idBarang:   document.getElementById('trxBarang').value,
+      qty:        document.getElementById('trxQty').value,
+      keterangan: document.getElementById('trxKet').value,
+      fileBase64: fileObj ? fileObj.base64 : '',
+      fileName:   fileObj ? fileObj.name   : '',
+      fileType:   fileObj ? fileObj.type   : ''
+    };
+    const r = await gas('saveTransaksi', data);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message + ' (Stok akhir: ' + r.stokSesudah + ')', 'success');
+    document.getElementById('formTrx').reset();
+    document.getElementById('trxTanggal').value = isoDate(new Date());
+    await loadMaster();
+    fillBarangSelect();
+    await loadTrx();
+  } catch(err){ toast(err.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+// =============== LAPORAN ===============
+async function loadLaporan(){
+  showLoading(true);
+  try {
+    if (!STATE.master.length) await loadMaster();
+    const tr = await gas('getTransaksi', {});
+    if (!tr.ok) throw new Error(tr.message);
+    STATE.trx = tr.data || [];
+
+    const stokBody = document.getElementById('repStokBody');
+    stokBody.innerHTML = STATE.master.filter(x => x.Status==='Active').map(x => `
+      <tr>
+        <td class="font-mono text-xs">${escapeHtml(x.ID_Barang)}</td>
+        <td>${escapeHtml(x.Nama_Barang)}</td>
+        <td>${fmtNum(x.Stok_Akhir)} ${escapeHtml(x.Satuan||'')}</td>
+        <td>Rp ${fmtNum((Number(x.Stok_Akhir)||0)*(Number(x.Harga_Beli)||0))}</td>
+      </tr>`).join('') || `<tr><td colspan="4" class="text-center text-slate-400 py-6">-</td></tr>`;
+
+    const masuk  = STATE.trx.filter(t => t.Tipe==='Masuk');
+    const keluar = STATE.trx.filter(t => t.Tipe==='Keluar');
+    document.getElementById('repTrxBody').innerHTML = `
+      <tr><td><span class="badge badge-green">Masuk</span></td><td>${masuk.length}</td><td>${fmtNum(masuk.reduce((s,t)=>s+Number(t.Qty||0),0))}</td></tr>
+      <tr><td><span class="badge badge-red">Keluar</span></td><td>${keluar.length}</td><td>${fmtNum(keluar.reduce((s,t)=>s+Number(t.Qty||0),0))}</td></tr>`;
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+function exportCSV(kind){
+  let rows = [], filename = '';
+  if (kind === 'master'){
+    filename = 'rekap_stok_' + isoDate(new Date()) + '.csv';
+    rows.push(['ID','Nama','Kategori','Stok','Satuan','Harga_Beli','Harga_Jual','Min','Expired','Status']);
+    STATE.master.forEach(x => rows.push([x.ID_Barang,x.Nama_Barang,x.Kategori,x.Stok_Akhir,x.Satuan,x.Harga_Beli,x.Harga_Jual,x.Min_Stok_Alert,x.Expired_Date?fmtDate(x.Expired_Date):'',x.Status]));
+  } else {
+    filename = 'transaksi_' + isoDate(new Date()) + '.csv';
+    rows.push(['ID_Trx','Tanggal','Tipe','ID_Barang','Nama','Qty','Stok_Sebelumnya','Stok_Sesudahnya','Keterangan','User']);
+    STATE.trx.forEach(t => rows.push([t.ID_Transaksi,fmtDate(t.Tanggal,true),t.Tipe,t.ID_Barang,t.Nama_Barang,t.Qty,t.Stok_Sebelumnya,t.Stok_Sesudahnya,t.Keterangan,t.User_Email]));
+  }
+  const csv = rows.map(r => r.map(c => '"' + String(c==null?'':c).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  toast('CSV diunduh', 'success');
+}
+
+// =============== USER ===============
+async function loadUsers(){
+  showLoading(true);
+  try {
+    const r = await gas('getUsers');
+    if (!r.ok) throw new Error(r.message);
+    STATE.users = r.data || [];
+    document.getElementById('userBody').innerHTML = STATE.users.length ? STATE.users.map(u => `
+      <tr>
+        <td>${escapeHtml(u.Email)}</td>
+        <td>${escapeHtml(u.Nama_Lengkap||'-')}</td>
+        <td><span class="badge ${u.Role==='Admin'?'badge-blue':(u.Role==='Staff'?'badge-green':'badge-gray')}">${escapeHtml(u.Role)}</span></td>
+        <td><span class="badge ${u.Status==='Active'?'badge-green':'badge-red'}">${escapeHtml(u.Status)}</span></td>
+        <td class="text-xs">${u.Terakhir_Akses?fmtDate(u.Terakhir_Akses,true):'-'}</td>
+        <td>
+          <button class="text-blue-600 hover:underline text-sm" onclick='editUser(${JSON.stringify(u.Email)})'>Edit</button>
+          <button class="text-amber-600 hover:underline text-sm ml-2" onclick='toggleUser(${JSON.stringify(u.Email)})'>${u.Status==='Active'?'Nonaktifkan':'Aktifkan'}</button>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="6" class="text-center text-slate-400 py-6">-</td></tr>`;
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+function openUserModal(){
+  document.getElementById('modalUserTitle').textContent = 'Tambah User';
+  document.getElementById('formUser').reset();
+  document.getElementById('usrMode').value = 'add';
+  document.getElementById('usrEmail').readOnly = false;
+  openModal('modalUser');
+}
+function editUser(email){
+  const u = STATE.users.find(x => x.Email === email);
+  if (!u) return;
+  document.getElementById('modalUserTitle').textContent = 'Edit User';
+  document.getElementById('usrMode').value   = 'edit';
+  document.getElementById('usrEmail').value  = u.Email;
+  document.getElementById('usrEmail').readOnly = true;
+  document.getElementById('usrNama').value   = u.Nama_Lengkap;
+  document.getElementById('usrRole').value   = u.Role;
+  document.getElementById('usrStatus').value = u.Status;
+  openModal('modalUser');
+}
+
+async function submitUser(e){
+  e.preventDefault();
+  showLoading(true);
+  try {
+    const mode = document.getElementById('usrMode').value;
+    const email = document.getElementById('usrEmail').value;
+    const nama  = document.getElementById('usrNama').value;
+    const role  = document.getElementById('usrRole').value;
+    const status= document.getElementById('usrStatus').value;
+    let r;
+    if (mode === 'add') r = await gas('saveUser', { email, nama, role, status });
+    else                r = await gas('updateUserRole', email, role, status);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    closeModal('modalUser');
+    await loadUsers();
+  } catch(err){ toast(err.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function toggleUser(email){
+  const u = STATE.users.find(x => x.Email === email); if (!u) return;
+  const newStat = u.Status === 'Active' ? 'Inactive' : 'Active';
+  if (!confirm(`Ubah status ${email} menjadi ${newStat}?`)) return;
+  showLoading(true);
+  try {
+    const r = await gas('updateUserRole', email, u.Role, newStat);
+    if (!r.ok) throw new Error(r.message);
+    toast('Status diubah', 'success');
+    await loadUsers();
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+// =============== LOG ===============
+async function loadLog(){
+  showLoading(true);
+  try {
+    const filter = {
+      tanggalDari:   document.getElementById('logFrom').value,
+      tanggalSampai: document.getElementById('logTo').value,
+      userEmail:     document.getElementById('logUser').value
+    };
+    const r = await gas('getLogValidasi', filter);
+    if (!r.ok) throw new Error(r.message);
+    document.getElementById('logBody').innerHTML = r.data.length ? r.data.map(l => `
+      <tr>
+        <td class="text-xs">${fmtDate(l.Waktu,true)}</td>
+        <td>${escapeHtml(l.Aksi)}</td>
+        <td>${escapeHtml(l.Lokasi)}</td>
+        <td class="text-red-600 text-xs">${escapeHtml(l.Pesan_Error)}</td>
+        <td class="text-xs">${escapeHtml(l.User_Email||'-')}</td>
+      </tr>`).join('') : `<tr><td colspan="5" class="text-center text-slate-400 py-6">Tidak ada log</td></tr>`;
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function clearOldLogs(){
+  if (!confirm('Hapus semua log yang lebih dari 30 hari?')) return;
+  showLoading(true);
+  try {
+    const r = await gas('clearOldLogs', 30);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+    await loadLog();
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+// =============== SETTINGS ===============
+async function loadSettings(){
+  showLoading(true);
+  try {
+    const r = await gas('getSettings');
+    if (!r.ok) throw new Error(r.message);
+    const s = r.data;
+    document.getElementById('setEmail').value   = s.emailAlert || '';
+    document.getElementById('setJam').value     = s.jamAlert || '08:00';
+    document.getElementById('setHari').value    = s.hariSebelumExpired || 7;
+    document.getElementById('setMinStok').value = s.minStokGlobal || 5;
+    document.getElementById('setNama').value    = s.namaPerusahaan || '';
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function saveSettings(e){
+  e.preventDefault();
+  showLoading(true);
+  try {
+    const s = {
+      emailAlert:         document.getElementById('setEmail').value.trim(),
+      jamAlert:           document.getElementById('setJam').value,
+      hariSebelumExpired: Number(document.getElementById('setHari').value),
+      minStokGlobal:      Number(document.getElementById('setMinStok').value),
+      namaPerusahaan:     document.getElementById('setNama').value.trim()
+    };
+    const r = await gas('updateSettings', s);
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+  } catch(err){ toast(err.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function manualBackup(){
+  showLoading(true);
+  try {
+    const r = await gas('backupData');
+    if (!r.ok) throw new Error(r.message);
+    toast('Backup OK: ' + r.file, 'success');
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+
+async function manualAlert(){
+  showLoading(true);
+  try {
+    const r = await gas('checkAndSendAlerts');
+    if (!r.ok) throw new Error(r.message);
+    toast(r.message, 'success');
+  } catch(e){ toast(e.message, 'error'); }
+  finally { showLoading(false); }
+}
+</script>
+</body>
+</html>
