@@ -71,6 +71,34 @@ function include(filename){
 //  INISIALISASI / SETUP
 // =============================================================================
 /**
+ * Util perbaikan: rapikan nama sheet (trim spasi tersembunyi) dan pastikan
+ * 4 sheet utama ada. Jalankan manual sekali jika `initSetup` menolak karena
+ * sheet duplikat.
+ */
+function repairSheets(){
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const targets = [SHEET_MASTER, SHEET_TRANSAKSI, SHEET_USER, SHEET_LOG];
+  const all = ss.getSheets();
+  // Rapikan nama yang punya spasi/whitespace berlebih
+  all.forEach(sh => {
+    const n = sh.getName();
+    const t = String(n).trim();
+    if (n !== t){
+      try { sh.setName(t); } catch(_){}
+    }
+  });
+  // Pastikan 4 sheet utama ada (memakai ensureSheet_ yang sudah robust)
+  const headersMap = {
+    [SHEET_MASTER]:    HEADER_MASTER,
+    [SHEET_TRANSAKSI]: HEADER_TRX,
+    [SHEET_USER]:      HEADER_USER,
+    [SHEET_LOG]:       HEADER_LOG
+  };
+  targets.forEach(name => ensureSheet_(ss, name, headersMap[name]));
+  SpreadsheetApp.getUi().alert('Sheet sudah dirapikan.');
+}
+
+/**
  * Inisialisasi: pastikan spreadsheet, sheet, folder Drive, dan user default ada.
  * Aman dipanggil berulang.
  */
@@ -106,11 +134,47 @@ function initSetup() {
 }
 
 function ensureSheet_(ss, name, headers){
+  // 1) Cari exact match
   let sh = ss.getSheetByName(name);
-  if (!sh) sh = ss.insertSheet(name);
-  if (sh.getLastRow() === 0) {
+
+  // 2) Jika tidak ketemu, cari case-insensitive / trimmed (mengatasi spasi tersembunyi)
+  if (!sh){
+    const all = ss.getSheets();
+    for (let i=0; i<all.length; i++){
+      if (String(all[i].getName()).trim().toLowerCase() === String(name).trim().toLowerCase()){
+        sh = all[i];
+        // Rapikan namanya agar konsisten
+        try { sh.setName(name); } catch(_){}
+        break;
+      }
+    }
+  }
+
+  // 3) Jika masih tidak ada, baru buat baru. insertSheet bisa lempar error jika
+  //    spreadsheet sedang punya sheet "duplikat tersembunyi" — kita amankan.
+  if (!sh){
+    try {
+      sh = ss.insertSheet(name);
+    } catch (e){
+      // fallback: buat dengan suffix lalu rename
+      sh = ss.insertSheet(name + '_tmp_' + Date.now());
+      try { sh.setName(name); } catch(_){}
+    }
+  }
+
+  // 4) Pastikan header benar (set jika kosong, perbaiki jika beda)
+  const lastCol = Math.max(sh.getLastColumn(), headers.length);
+  const cur = sh.getLastRow() === 0
+    ? []
+    : sh.getRange(1,1,1,lastCol).getValues()[0].map(v => String(v||'').trim());
+
+  const sama = cur.length >= headers.length &&
+               headers.every((h,i) => cur[i] === h);
+
+  if (!sama){
     sh.getRange(1,1,1,headers.length).setValues([headers]);
-    sh.getRange(1,1,1,headers.length).setFontWeight('bold').setBackground('#1f2937').setFontColor('#fff');
+    sh.getRange(1,1,1,headers.length)
+      .setFontWeight('bold').setBackground('#1f2937').setFontColor('#fff');
     sh.setFrozenRows(1);
   }
   return sh;
@@ -123,6 +187,7 @@ function onOpen(){
   SpreadsheetApp.getUi()
     .createMenu('Stok Barang')
     .addItem('Inisialisasi Setup','initSetup')
+    .addItem('Repair Sheets','repairSheets')
     .addItem('Buat Trigger Otomatis','createTimeDrivenTriggers')
     .addItem('Cek Alert Sekarang','checkAndSendAlerts')
     .addItem('Backup Manual','backupData')
