@@ -39,7 +39,7 @@ const HEADER_TRX = ['ID_Transaksi','Tanggal','Tipe','ID_Barang','Nama_Barang','Q
   'Stok_Sebelumnya','Stok_Sesudahnya','Keterangan','Lampiran_Drive_ID',
   'User_Email','Timestamp_Input'];
 
-const HEADER_USER = ['Email','Nama_Lengkap','Role','Status','Terakhir_Akses','Dibuat_Pada'];
+const HEADER_USER = ['Email','Nama_Lengkap','Role','Status','Terakhir_Akses','Dibuat_Pada','Password'];
 const HEADER_LOG  = ['Waktu','Aksi','Lokasi','Pesan_Error','Data_Gagal','User_Email'];
 
 const DEFAULT_SETTINGS = {
@@ -162,8 +162,8 @@ function initSetup() {
   // user default admin jika kosong
   const userSh = ss.getSheetByName(SHEET_USER);
   if (userSh.getLastRow() < 2) {
-    const me = (Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || '').trim();
-    if (me) userSh.appendRow([me, 'Administrator', 'Admin', 'Active', '', new Date()]);
+    const me = (Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail() || 'admin@example.com').trim();
+    if (me) userSh.appendRow([me, 'Administrator', 'Admin', 'Active', '', new Date(), 'admin123']);
   }
 }
 
@@ -319,7 +319,7 @@ function claimAdmin(namaLengkap){
       sh.getRange(myRow, 4).setValue('Active');
       sh.getRange(myRow, 5).setValue(new Date());
     } else {
-      sh.appendRow([email, namaLengkap || 'Administrator', 'Admin', 'Active', new Date(), new Date()]);
+      sh.appendRow([email, namaLengkap || 'Administrator', 'Admin', 'Active', new Date(), new Date(), 'admin123']);
     }
     return { ok:true, message:'Berhasil! Anda sekarang terdaftar sebagai Admin: ' + email };
   } catch(err){
@@ -327,11 +327,116 @@ function claimAdmin(namaLengkap){
   }
 }
 
-function requireRole_(roles){
-  const u = getCurrentUser();
-  if (!u.found || u.status !== 'Active') throw new Error('Akses ditolak: user tidak aktif.');
+function requireRole_(roles, _auth){
+  let u = null;
+
+  // 1) Token-based auth (utamakan ini, dipakai oleh login form)
+  if (_auth && _auth.token){
+    const cached = _getUserFromToken_(_auth.token);
+    if (cached) u = { email: cached.email, nama: cached.nama, role: cached.role, status: 'Active', found: true };
+  }
+
+  // 2) Fallback: Session-based (jika user akses dengan akun Google yang terdaftar)
+  if (!u){
+    u = getCurrentUser();
+  }
+
+  if (!u.found || u.status !== 'Active') throw new Error('Akses ditolak: silakan login terlebih dahulu.');
   if (roles && roles.indexOf(u.role) === -1) throw new Error('Akses ditolak: role tidak memadai.');
   return u;
+}
+
+// =============================================================================
+//  LOGIN / LOGOUT (TOKEN-BASED)
+// =============================================================================
+/**
+ * Login dengan email & password. Mengembalikan token yang harus dikirim
+ * di setiap request berikutnya sebagai _auth = {token}.
+ * Token disimpan di CacheService selama 6 jam.
+ */
+function loginUser(email, password){
+  try {
+    if (!email || !password) throw new Error('Email & password wajib diisi.');
+    const target = String(email).trim().toLowerCase();
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
+    const data = sh.getDataRange().getValues();
+
+    for (let i=1; i<data.length; i++){
+      const e = String(data[i][0]||'').trim().toLowerCase();
+      if (e !== target) continue;
+      const role   = String(data[i][2]||'').trim();
+      const status = String(data[i][3]||'').trim();
+      const stored = String(data[i][6]||'');  // kolom Password (index 6)
+
+      if (status !== 'Active') throw new Error('Akun Anda tidak aktif. Hubungi Admin.');
+      if (!stored)             throw new Error('Akun belum punya password. Minta Admin set password.');
+      if (stored !== password) throw new Error('Password salah.');
+
+      // sukses
+      sh.getRange(i+1, 5).setValue(new Date()); // update Terakhir_Akses
+
+      const token = Utilities.getUuid().replace(/-/g,'') + Date.now().toString(36);
+      const userInfo = { email: e, nama: data[i][1], role: role, status: status };
+      CacheService.getScriptCache().put('auth_' + token, JSON.stringify(userInfo), 21600); // 6 jam
+
+      return { ok:true, token: token, user: userInfo, message:'Login berhasil.' };
+    }
+    throw new Error('Email tidak terdaftar.');
+  } catch(err){
+    return logAndReturnError_('loginUser','Auth',err,{email});
+  }
+}
+
+/**
+ * Verifikasi token. Dipanggil saat halaman dibuka untuk auto-login.
+ */
+function verifyToken(token){
+  try {
+    const u = _getUserFromToken_(token);
+    if (!u) return { ok:false, message:'Sesi sudah berakhir, silakan login ulang.' };
+    return { ok:true, user: u };
+  } catch(err){
+    return logAndReturnError_('verifyToken','Auth',err);
+  }
+}
+
+/**
+ * Hapus token dari cache (logout).
+ */
+function logoutUser(token){
+  try {
+    if (token) CacheService.getScriptCache().remove('auth_' + token);
+    return { ok:true, message:'Logout berhasil.' };
+  } catch(err){
+    return logAndReturnError_('logoutUser','Auth',err);
+  }
+}
+
+function _getUserFromToken_(token){
+  if (!token) return null;
+  const raw = CacheService.getScriptCache().get('auth_' + token);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(_){ return null; }
+}
+
+/**
+ * Ganti password sendiri. Memerlukan token + password lama untuk verifikasi.
+ */
+function changePassword(passwordLama, passwordBaru, _auth){
+  try {
+    const u = requireRole_(null, _auth);
+    if (!passwordBaru || passwordBaru.length < 4) throw new Error('Password baru minimal 4 karakter.');
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
+    const data = sh.getDataRange().getValues();
+    for (let i=1;i<data.length;i++){
+      if (String(data[i][0]||'').trim().toLowerCase() === u.email.toLowerCase()){
+        if (String(data[i][6]||'') !== passwordLama) throw new Error('Password lama salah.');
+        sh.getRange(i+1, 7).setValue(passwordBaru);
+        return { ok:true, message:'Password berhasil diubah.' };
+      }
+    }
+    throw new Error('User tidak ditemukan.');
+  } catch(err){ return logAndReturnError_('changePassword','Auth',err); }
 }
 
 // =============================================================================
@@ -402,9 +507,9 @@ function getMasterBarang(){
  * formData: {nama, kategori, stokAwal, satuan, hargaBeli, hargaJual,
  *            minStok, expiredDate, fileBase64, fileName, fileType}
  */
-function saveBarang(formData){
+function saveBarang(formData, _auth){
   try {
-    const u = requireRole_(['Admin','Staff']);
+    const u = requireRole_(['Admin','Staff'], _auth);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sh = ss.getSheetByName(SHEET_MASTER);
 
@@ -462,9 +567,9 @@ function saveBarang(formData){
   }
 }
 
-function updateBarang(formData){
+function updateBarang(formData, _auth){
   try {
-    const u = requireRole_(['Admin','Staff']);
+    const u = requireRole_(['Admin','Staff'], _auth);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sh = ss.getSheetByName(SHEET_MASTER);
     const data = sh.getDataRange().getValues();
@@ -530,9 +635,9 @@ function updateBarang(formData){
 /**
  * Soft delete: ubah Status menjadi Inactive.
  */
-function deleteBarang(idBarang){
+function deleteBarang(idBarang, _auth){
   try {
-    const u = requireRole_(['Admin']);
+    const u = requireRole_(['Admin'], _auth);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sh = ss.getSheetByName(SHEET_MASTER);
     const data = sh.getDataRange().getValues();
@@ -556,9 +661,9 @@ function deleteBarang(idBarang){
  * formData: {tipe:'Masuk'|'Keluar', idBarang, qty, tanggal, keterangan,
  *            fileBase64, fileName, fileType}
  */
-function saveTransaksi(formData){
+function saveTransaksi(formData, _auth){
   try {
-    const u = requireRole_(['Admin','Staff']);
+    const u = requireRole_(['Admin','Staff'], _auth);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const shM = ss.getSheetByName(SHEET_MASTER);
     const shT = ss.getSheetByName(SHEET_TRANSAKSI);
@@ -657,18 +762,18 @@ function getTransaksi(filter){
 // =============================================================================
 //  USER MANAGEMENT
 // =============================================================================
-function getUsers(){
+function getUsers(_auth){
   try {
-    requireRole_(['Admin']);
+    requireRole_(['Admin'], _auth);
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_USER);
     const rows = sh.getDataRange().getValues().slice(1).map(r => rowToObj_(HEADER_USER, r));
     return { ok:true, data: rows };
   } catch(err){ return logAndReturnError_('getUsers','User',err); }
 }
 
-function saveUser(formData){
+function saveUser(formData, _auth){
   try {
-    requireRole_(['Admin']);
+    requireRole_(['Admin'], _auth);
     const f = formData || {};
     const email = String(f.email||'').trim();
     if (!isValidEmail_(email)) throw new Error('Format email tidak valid.');
@@ -682,17 +787,17 @@ function saveUser(formData){
         throw new Error('Email sudah terdaftar: ' + email);
       }
     }
-    sh.appendRow([email, String(f.nama).trim(), f.role, f.status || 'Active', '', new Date()]);
-    return { ok:true, message:'User berhasil ditambahkan.' };
+    sh.appendRow([email, String(f.nama).trim(), f.role, f.status || 'Active', '', new Date(), f.password || 'changeme123']);
+    return { ok:true, message:'User berhasil ditambahkan. Password default: ' + (f.password || 'changeme123') };
   } catch(err){
     sendErrorEmail_('Tambah User gagal', err.message, formData);
     return logAndReturnError_('saveUser','User',err,formData);
   }
 }
 
-function updateUserRole(email, role, status){
+function updateUserRole(email, role, status, _auth){
   try {
-    requireRole_(['Admin']);
+    requireRole_(['Admin'], _auth);
     const target = String(email||'').trim();
     if (!isValidEmail_(target)) throw new Error('Email tidak valid.');
     if (['Admin','Staff','Viewer'].indexOf(role) === -1) throw new Error('Role tidak valid.');
@@ -715,9 +820,9 @@ function updateUserRole(email, role, status){
 // =============================================================================
 //  LOG VALIDASI
 // =============================================================================
-function getLogValidasi(filter){
+function getLogValidasi(filter, _auth){
   try {
-    requireRole_(['Admin']);
+    requireRole_(['Admin'], _auth);
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_LOG);
     let rows = sh.getDataRange().getValues().slice(1).map(r => rowToObj_(HEADER_LOG, r));
     if (filter){
@@ -733,9 +838,9 @@ function getLogValidasi(filter){
   } catch(err){ return logAndReturnError_('getLogValidasi','Log',err); }
 }
 
-function clearOldLogs(daysOld){
+function clearOldLogs(daysOld, _auth){
   try {
-    requireRole_(['Admin']);
+    requireRole_(['Admin'], _auth);
     const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_LOG);
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - (Number(daysOld)||30));
     const data = sh.getDataRange().getValues();
@@ -758,9 +863,9 @@ function getSettings(){
   } catch(err){ return logAndReturnError_('getSettings','Settings',err); }
 }
 
-function updateSettings(settings){
+function updateSettings(settings, _auth){
   try {
-    requireRole_(['Admin']);
+    requireRole_(['Admin'], _auth);
     const cur = (getSettings().data) || DEFAULT_SETTINGS;
     const merged = Object.assign({}, cur, settings || {});
     if (merged.emailAlert && !isValidEmail_(merged.emailAlert)) throw new Error('Email alert tidak valid.');

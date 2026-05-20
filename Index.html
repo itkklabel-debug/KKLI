@@ -43,7 +43,7 @@
   .modal-overlay.show { display:flex; }
   .modal { background:#fff; border-radius:14px; max-width:640px; width:100%; max-height:92vh; overflow-y:auto; }
   .toast { position:fixed; top:24px; right:24px; padding:14px 20px; border-radius:10px; color:#fff;
-           font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.18); z-index:100; opacity:0;
+           font-size:14px; box-shadow:0 10px 30px rgba(0,0,0,.18); z-index:400; opacity:0;
            transform:translateY(-12px); transition:.25s; min-width:260px; }
   .toast.show { opacity:1; transform:translateY(0); }
   .toast-success { background:#16a34a; }
@@ -72,49 +72,44 @@
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
 
-<!-- ACCESS DENIED OVERLAY -->
-<div id="accessDenied" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:300;overflow-y:auto;padding:40px 20px">
-  <div style="max-width:560px;margin:0 auto;background:#fff;padding:32px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.08)">
-    <div style="display:inline-block;background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;margin-bottom:14px">Akses Ditolak</div>
-    <h1 style="font-size:22px;margin:0 0 6px;color:#0f172a">Akun Anda belum terdaftar / aktif</h1>
-    <p style="color:#475569;margin:0 0 18px">Aplikasi mendeteksi email Anda sebagai berikut. Pastikan email ini sudah terdaftar di sheet <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">User</code> dengan Status <b>Active</b>.</p>
-    <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:14px 16px;border-radius:8px;margin-bottom:20px">
-      <div style="font-size:12px;color:#1e40af;font-weight:600;margin-bottom:4px">Email yang terdeteksi:</div>
-      <div id="adDetectedEmail" style="font-family:ui-monospace,monospace;font-size:15px;color:#1e3a8a;font-weight:600">-</div>
-      <div id="adDetectedStatus" style="font-size:12px;color:#475569;margin-top:6px"></div>
+<!-- ====================== LOGIN SCREEN ====================== -->
+<div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#3b82f6 100%);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="max-width:420px;width:100%;background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 25px 50px rgba(0,0,0,.25)">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:64px;height:64px;background:#2563eb;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700;margin-bottom:14px">📦</div>
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin:0">Aplikasi Stok Barang</h1>
+      <p style="color:#64748b;font-size:14px;margin:4px 0 0">Silakan masuk untuk melanjutkan</p>
     </div>
 
-    <div id="adNoAdmin" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;padding:16px;border-radius:8px;margin-bottom:20px">
-      <div style="font-weight:600;color:#166534;margin-bottom:8px">✓ Belum ada Admin Aktif di sistem</div>
-      <p style="color:#166534;font-size:14px;margin:0 0 12px">Anda bisa mendaftarkan diri sendiri sebagai Admin pertama:</p>
-      <input id="adNamaInput" placeholder="Nama lengkap Anda" style="width:100%;padding:9px 12px;border:1px solid #86efac;border-radius:8px;font-size:14px;margin-bottom:10px">
-      <button class="btn btn-success" onclick="claimAdminBtn()" style="width:100%;justify-content:center">📝 Daftar saya sebagai Admin</button>
-    </div>
+    <form id="formLogin" onsubmit="doLogin(event)">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Email</label>
+        <input id="loginEmail" type="email" class="input" placeholder="nama@email.com" autocomplete="username" required autofocus>
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Password</label>
+        <input id="loginPassword" type="password" class="input" placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+      <div id="loginError" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;font-size:15px">Masuk</button>
+    </form>
 
-    <div style="font-size:14px;color:#475569;line-height:1.7">
-      <b>Jika email tidak sesuai:</b>
-      <ol style="padding-left:20px;margin:8px 0">
-        <li>Pastikan Anda login dengan akun Google yang benar di browser ini</li>
-        <li>Coba buka di <b>jendela Incognito</b> dan login ulang</li>
-        <li>Jika deploy memakai "Execute as: User accessing", coba ubah ke <b>"Execute as: Me"</b> agar email selalu terdeteksi</li>
-      </ol>
-      <b>Jika email sudah benar tapi tetap ditolak:</b>
-      <ol style="padding-left:20px;margin:8px 0">
-        <li>Buka sheet <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">User</code> di spreadsheet</li>
-        <li>Cek tidak ada spasi tersembunyi di kolom Email — gunakan <code>=TRIM(A2)</code> untuk membersihkan</li>
-        <li>Pastikan kolom Status berisi <b>Active</b> (bukan "active" atau "AKTIF")</li>
-        <li>Refresh halaman ini</li>
-      </ol>
+    <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:12px;color:#64748b;text-align:center;line-height:1.6">
+      <b>Login pertama kali?</b><br>
+      Pakai akun default Admin:<br>
+      <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#1e40af">admin@example.com</code> /
+      <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#1e40af">admin123</code><br>
+      <span style="color:#94a3b8">(atau email Google Anda jika sudah terdeteksi saat initSetup)</span>
     </div>
-    <button class="btn btn-secondary" onclick="location.reload()" style="margin-top:14px">🔄 Refresh</button>
   </div>
 </div>
 
-<!-- LAYOUT -->
+<!-- ====================== MAIN APP (hidden until logged in) ====================== -->
+<div id="appShell" style="display:none">
 <div class="flex">
 
   <!-- SIDEBAR -->
-  <aside id="sidebar" class="w-60 bg-slate-900 text-white min-h-screen p-4 flex-shrink-0">
+  <aside id="sidebar" class="w-60 bg-slate-900 text-white min-h-screen p-4 flex-shrink-0 relative">
     <div class="flex items-center gap-2 mb-6 px-2">
       <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center font-bold">SB</div>
       <div>
@@ -130,6 +125,8 @@
       <div class="sidebar-link admin-only" data-view="users">👥 <span>Manajemen User</span></div>
       <div class="sidebar-link admin-only" data-view="log">⚠ <span>Log &amp; Validasi</span></div>
       <div class="sidebar-link admin-only" data-view="settings">⚙ <span>Pengaturan</span></div>
+      <div class="sidebar-link" onclick="changePasswordPrompt()" style="margin-top:14px">🔑 <span>Ganti Password</span></div>
+      <div class="sidebar-link" onclick="doLogout()">🚪 <span>Logout</span></div>
     </nav>
     <div class="absolute bottom-4 left-4 right-4 text-xs text-slate-400">
       <div id="userBox" class="bg-slate-800 rounded-lg p-3">
@@ -142,7 +139,6 @@
 
   <!-- MAIN -->
   <main id="main" class="flex-1 p-6 md:p-8 ml-0">
-    <!-- TOPBAR (mobile) -->
     <div class="flex items-center justify-between mb-4 md:hidden">
       <button class="btn btn-secondary" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Menu</button>
       <div class="text-sm text-slate-600" id="userEmailMobile">-</div>
@@ -152,30 +148,12 @@
     <section id="view-dashboard" class="view active">
       <h1 class="text-2xl font-bold text-slate-800 mb-1">Dashboard</h1>
       <p class="text-slate-500 mb-6">Ringkasan stok &amp; alert terkini</p>
-
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="card-stat">
-          <div class="text-xs text-slate-500 uppercase tracking-wide">Total Item</div>
-          <div class="text-3xl font-bold text-slate-800 mt-1" id="statTotal">0</div>
-          <div class="text-xs text-slate-400 mt-1">Barang aktif</div>
-        </div>
-        <div class="card-stat border-l-4 border-amber-500">
-          <div class="text-xs text-slate-500 uppercase tracking-wide">Stok Menipis</div>
-          <div class="text-3xl font-bold text-amber-600 mt-1" id="statLow">0</div>
-          <div class="text-xs text-slate-400 mt-1">≤ minimum stok</div>
-        </div>
-        <div class="card-stat border-l-4 border-red-500">
-          <div class="text-xs text-slate-500 uppercase tracking-wide">Akan Expired</div>
-          <div class="text-3xl font-bold text-red-600 mt-1" id="statExp">0</div>
-          <div class="text-xs text-slate-400 mt-1">≤ 7 hari</div>
-        </div>
-        <div class="card-stat border-l-4 border-blue-500">
-          <div class="text-xs text-slate-500 uppercase tracking-wide">Transaksi 7 Hari</div>
-          <div class="text-3xl font-bold text-blue-600 mt-1" id="statTrx">0</div>
-          <div class="text-xs text-slate-400 mt-1">Masuk + Keluar</div>
-        </div>
+        <div class="card-stat"><div class="text-xs text-slate-500 uppercase tracking-wide">Total Item</div><div class="text-3xl font-bold text-slate-800 mt-1" id="statTotal">0</div><div class="text-xs text-slate-400 mt-1">Barang aktif</div></div>
+        <div class="card-stat border-l-4 border-amber-500"><div class="text-xs text-slate-500 uppercase tracking-wide">Stok Menipis</div><div class="text-3xl font-bold text-amber-600 mt-1" id="statLow">0</div><div class="text-xs text-slate-400 mt-1">≤ minimum stok</div></div>
+        <div class="card-stat border-l-4 border-red-500"><div class="text-xs text-slate-500 uppercase tracking-wide">Akan Expired</div><div class="text-3xl font-bold text-red-600 mt-1" id="statExp">0</div><div class="text-xs text-slate-400 mt-1">≤ 7 hari</div></div>
+        <div class="card-stat border-l-4 border-blue-500"><div class="text-xs text-slate-500 uppercase tracking-wide">Transaksi 7 Hari</div><div class="text-3xl font-bold text-blue-600 mt-1" id="statTrx">0</div><div class="text-xs text-slate-400 mt-1">Masuk + Keluar</div></div>
       </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white rounded-xl shadow-sm p-5">
           <h3 class="font-semibold text-slate-800 mb-3">📉 10 Barang Stok Terendah</h3>
@@ -186,9 +164,7 @@
         </div>
         <div class="bg-white rounded-xl shadow-sm p-5">
           <h3 class="font-semibold text-slate-800 mb-3">🔔 Alert Terbaru</h3>
-          <div id="alertList" class="space-y-2 text-sm">
-            <div class="text-slate-400 text-center py-6">Tidak ada alert</div>
-          </div>
+          <div id="alertList" class="space-y-2 text-sm"><div class="text-slate-400 text-center py-6">Tidak ada alert</div></div>
         </div>
       </div>
     </section>
@@ -202,15 +178,10 @@
       <div class="bg-white rounded-xl shadow-sm p-5">
         <div class="flex flex-wrap gap-3 mb-4">
           <input id="searchBarang" class="input flex-1 min-w-[180px]" placeholder="🔍 Cari nama / ID..." oninput="renderMaster()">
-          <select id="filterKategori" class="select max-w-[200px]" onchange="renderMaster()">
-            <option value="">Semua Kategori</option>
-          </select>
+          <select id="filterKategori" class="select max-w-[200px]" onchange="renderMaster()"><option value="">Semua Kategori</option></select>
         </div>
         <div class="overflow-x-auto"><table>
-          <thead><tr>
-            <th>ID</th><th>Nama</th><th>Kategori</th><th>Stok</th><th>Satuan</th>
-            <th>Min</th><th>Expired</th><th>Status</th><th>Aksi</th>
-          </tr></thead>
+          <thead><tr><th>ID</th><th>Nama</th><th>Kategori</th><th>Stok</th><th>Satuan</th><th>Min</th><th>Expired</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="masterBody"><tr><td colspan="9" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
         </table></div>
       </div>
@@ -219,63 +190,29 @@
     <!-- VIEW: TRANSAKSI -->
     <section id="view-transaksi" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Transaksi Stok</h1>
-
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- Form transaksi -->
         <div class="bg-white rounded-xl shadow-sm p-5 lg:col-span-1">
           <h3 class="font-semibold text-slate-800 mb-3">Input Transaksi</h3>
           <form id="formTrx" class="space-y-3" onsubmit="submitTrx(event)">
-            <div>
-              <label class="text-xs font-medium text-slate-600">Tipe</label>
-              <select id="trxTipe" class="select" required>
-                <option value="Masuk">📥 Stok Masuk</option>
-                <option value="Keluar">📤 Stok Keluar</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-medium text-slate-600">Tanggal</label>
-              <input id="trxTanggal" type="date" class="input" required>
-            </div>
-            <div>
-              <label class="text-xs font-medium text-slate-600">Barang</label>
-              <select id="trxBarang" class="select" required>
-                <option value="">-- pilih barang --</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-medium text-slate-600">Qty</label>
-              <input id="trxQty" type="number" min="1" class="input" required>
-            </div>
-            <div>
-              <label class="text-xs font-medium text-slate-600">Keterangan</label>
-              <textarea id="trxKet" class="textarea" rows="2"></textarea>
-            </div>
-            <div>
-              <label class="text-xs font-medium text-slate-600">Bukti / Nota (opsional)</label>
-              <input id="trxFile" type="file" class="input" accept="image/*,.pdf">
-            </div>
+            <div><label class="text-xs font-medium text-slate-600">Tipe</label><select id="trxTipe" class="select" required><option value="Masuk">📥 Stok Masuk</option><option value="Keluar">📤 Stok Keluar</option></select></div>
+            <div><label class="text-xs font-medium text-slate-600">Tanggal</label><input id="trxTanggal" type="date" class="input" required></div>
+            <div><label class="text-xs font-medium text-slate-600">Barang</label><select id="trxBarang" class="select" required><option value="">-- pilih barang --</option></select></div>
+            <div><label class="text-xs font-medium text-slate-600">Qty</label><input id="trxQty" type="number" min="1" class="input" required></div>
+            <div><label class="text-xs font-medium text-slate-600">Keterangan</label><textarea id="trxKet" class="textarea" rows="2"></textarea></div>
+            <div><label class="text-xs font-medium text-slate-600">Bukti / Nota (opsional)</label><input id="trxFile" type="file" class="input" accept="image/*,.pdf"></div>
             <button class="btn btn-primary w-full justify-center" type="submit">💾 Simpan Transaksi</button>
           </form>
         </div>
-
-        <!-- Riwayat -->
         <div class="bg-white rounded-xl shadow-sm p-5 lg:col-span-2">
           <h3 class="font-semibold text-slate-800 mb-3">Riwayat Transaksi</h3>
           <div class="flex flex-wrap gap-2 mb-3">
             <input id="trxFrom" type="date" class="input max-w-[160px]">
             <input id="trxTo" type="date" class="input max-w-[160px]">
-            <select id="trxFilterTipe" class="select max-w-[140px]">
-              <option value="">Semua Tipe</option>
-              <option value="Masuk">Masuk</option>
-              <option value="Keluar">Keluar</option>
-            </select>
+            <select id="trxFilterTipe" class="select max-w-[140px]"><option value="">Semua Tipe</option><option value="Masuk">Masuk</option><option value="Keluar">Keluar</option></select>
             <button class="btn btn-secondary" onclick="loadTrx()">Filter</button>
           </div>
           <div class="overflow-x-auto"><table>
-            <thead><tr>
-              <th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th>
-              <th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th>
-            </tr></thead>
+            <thead><tr><th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th><th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th></tr></thead>
             <tbody id="trxBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
           </table></div>
         </div>
@@ -292,21 +229,14 @@
           <button class="btn btn-success" onclick="window.print()">🖨 Print PDF</button>
         </div>
       </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white rounded-xl shadow-sm p-5">
           <h3 class="font-semibold text-slate-800 mb-3">Rekap Stok</h3>
-          <div class="overflow-x-auto"><table>
-            <thead><tr><th>ID</th><th>Nama</th><th>Stok Akhir</th><th>Nilai</th></tr></thead>
-            <tbody id="repStokBody"></tbody>
-          </table></div>
+          <div class="overflow-x-auto"><table><thead><tr><th>ID</th><th>Nama</th><th>Stok Akhir</th><th>Nilai</th></tr></thead><tbody id="repStokBody"></tbody></table></div>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-5">
           <h3 class="font-semibold text-slate-800 mb-3">Rekap Transaksi</h3>
-          <div class="overflow-x-auto"><table>
-            <thead><tr><th>Tipe</th><th>Jumlah Trx</th><th>Total Qty</th></tr></thead>
-            <tbody id="repTrxBody"></tbody>
-          </table></div>
+          <div class="overflow-x-auto"><table><thead><tr><th>Tipe</th><th>Jumlah Trx</th><th>Total Qty</th></tr></thead><tbody id="repTrxBody"></tbody></table></div>
         </div>
       </div>
     </section>
@@ -348,28 +278,13 @@
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Pengaturan</h1>
       <div class="bg-white rounded-xl shadow-sm p-5 max-w-xl">
         <form id="formSettings" class="space-y-3" onsubmit="saveSettings(event)">
-          <div>
-            <label class="text-xs font-medium text-slate-600">Email Penerima Alert</label>
-            <input id="setEmail" type="email" class="input">
-          </div>
+          <div><label class="text-xs font-medium text-slate-600">Email Penerima Alert</label><input id="setEmail" type="email" class="input"></div>
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-xs font-medium text-slate-600">Jam Alert Harian</label>
-              <input id="setJam" type="time" class="input">
-            </div>
-            <div>
-              <label class="text-xs font-medium text-slate-600">Hari Sebelum Expired</label>
-              <input id="setHari" type="number" min="1" class="input">
-            </div>
+            <div><label class="text-xs font-medium text-slate-600">Jam Alert Harian</label><input id="setJam" type="time" class="input"></div>
+            <div><label class="text-xs font-medium text-slate-600">Hari Sebelum Expired</label><input id="setHari" type="number" min="1" class="input"></div>
           </div>
-          <div>
-            <label class="text-xs font-medium text-slate-600">Min Stok Global</label>
-            <input id="setMinStok" type="number" min="0" class="input">
-          </div>
-          <div>
-            <label class="text-xs font-medium text-slate-600">Nama Perusahaan</label>
-            <input id="setNama" class="input">
-          </div>
+          <div><label class="text-xs font-medium text-slate-600">Min Stok Global</label><input id="setMinStok" type="number" min="0" class="input"></div>
+          <div><label class="text-xs font-medium text-slate-600">Nama Perusahaan</label><input id="setNama" class="input"></div>
           <div class="flex flex-wrap gap-2 pt-2">
             <button type="submit" class="btn btn-primary">💾 Simpan</button>
             <button type="button" class="btn btn-success" onclick="manualBackup()">📦 Backup Manual</button>
@@ -379,6 +294,7 @@
       </div>
     </section>
   </main>
+</div>
 </div>
 
 <!-- MODAL: BARANG -->
@@ -391,43 +307,15 @@
     <form id="formBarang" class="space-y-3" onsubmit="submitBarang(event)">
       <input type="hidden" id="brgId">
       <div class="grid grid-cols-2 gap-3">
-        <div class="col-span-2">
-          <label class="text-xs font-medium text-slate-600">Nama Barang *</label>
-          <input id="brgNama" class="input" required>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Kategori</label>
-          <input id="brgKategori" class="input" list="kategoriList">
-          <datalist id="kategoriList"></datalist>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Satuan</label>
-          <input id="brgSatuan" class="input" placeholder="pcs, box, kg" value="pcs">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Stok Awal *</label>
-          <input id="brgStokAwal" type="number" min="0" class="input" required value="0">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Min Stok Alert</label>
-          <input id="brgMinStok" type="number" min="0" class="input" value="5">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Harga Beli</label>
-          <input id="brgHargaBeli" type="number" min="0" class="input" value="0">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Harga Jual</label>
-          <input id="brgHargaJual" type="number" min="0" class="input" value="0">
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs font-medium text-slate-600">Tanggal Expired (opsional)</label>
-          <input id="brgExpired" type="date" class="input">
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs font-medium text-slate-600">Foto Barang (opsional)</label>
-          <input id="brgFile" type="file" class="input" accept="image/*">
-        </div>
+        <div class="col-span-2"><label class="text-xs font-medium text-slate-600">Nama Barang *</label><input id="brgNama" class="input" required></div>
+        <div><label class="text-xs font-medium text-slate-600">Kategori</label><input id="brgKategori" class="input" list="kategoriList"><datalist id="kategoriList"></datalist></div>
+        <div><label class="text-xs font-medium text-slate-600">Satuan</label><input id="brgSatuan" class="input" placeholder="pcs, box, kg" value="pcs"></div>
+        <div><label class="text-xs font-medium text-slate-600">Stok Awal *</label><input id="brgStokAwal" type="number" min="0" class="input" required value="0"></div>
+        <div><label class="text-xs font-medium text-slate-600">Min Stok Alert</label><input id="brgMinStok" type="number" min="0" class="input" value="5"></div>
+        <div><label class="text-xs font-medium text-slate-600">Harga Beli</label><input id="brgHargaBeli" type="number" min="0" class="input" value="0"></div>
+        <div><label class="text-xs font-medium text-slate-600">Harga Jual</label><input id="brgHargaJual" type="number" min="0" class="input" value="0"></div>
+        <div class="col-span-2"><label class="text-xs font-medium text-slate-600">Tanggal Expired (opsional)</label><input id="brgExpired" type="date" class="input"></div>
+        <div class="col-span-2"><label class="text-xs font-medium text-slate-600">Foto Barang (opsional)</label><input id="brgFile" type="file" class="input" accept="image/*"></div>
       </div>
       <div class="flex justify-end gap-2 pt-3">
         <button type="button" class="btn btn-secondary" onclick="closeModal('modalBarang')">Batal</button>
@@ -446,30 +334,12 @@
     </div>
     <form id="formUser" class="space-y-3" onsubmit="submitUser(event)">
       <input type="hidden" id="usrMode" value="add">
-      <div>
-        <label class="text-xs font-medium text-slate-600">Email *</label>
-        <input id="usrEmail" type="email" class="input" required>
-      </div>
-      <div>
-        <label class="text-xs font-medium text-slate-600">Nama Lengkap *</label>
-        <input id="usrNama" class="input" required>
-      </div>
+      <div><label class="text-xs font-medium text-slate-600">Email *</label><input id="usrEmail" type="email" class="input" required></div>
+      <div><label class="text-xs font-medium text-slate-600">Nama Lengkap *</label><input id="usrNama" class="input" required></div>
+      <div id="usrPasswordWrap"><label class="text-xs font-medium text-slate-600">Password *</label><input id="usrPassword" type="text" class="input" placeholder="min. 4 karakter" value="changeme123"><p class="text-xs text-slate-500 mt-1">User akan login pakai password ini.</p></div>
       <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs font-medium text-slate-600">Role *</label>
-          <select id="usrRole" class="select" required>
-            <option value="Admin">Admin</option>
-            <option value="Staff">Staff</option>
-            <option value="Viewer">Viewer</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-slate-600">Status</label>
-          <select id="usrStatus" class="select">
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
+        <div><label class="text-xs font-medium text-slate-600">Role *</label><select id="usrRole" class="select" required><option value="Admin">Admin</option><option value="Staff">Staff</option><option value="Viewer">Viewer</option></select></div>
+        <div><label class="text-xs font-medium text-slate-600">Status</label><select id="usrStatus" class="select"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
       </div>
       <div class="flex justify-end gap-2 pt-3">
         <button type="button" class="btn btn-secondary" onclick="closeModal('modalUser')">Batal</button>
@@ -482,17 +352,17 @@
 <script>
 // =============== STATE ===============
 let STATE = {
-  user: { email:'', nama:'', role:'Guest', status:'Inactive' },
-  master: [],
-  trx: [],
-  users: []
+  user:  { email:'', nama:'', role:'Guest', status:'Inactive' },
+  token: '',
+  master: [], trx: [], users: []
 };
+const TOKEN_KEY = 'stokBarang_authToken';
 
 // =============== UTIL ===============
 function showLoading(b){ document.getElementById('loading').classList.toggle('show', b); }
-function toast(msg, type='info'){
+function toast(msg, type){
   const t = document.getElementById('toast');
-  t.className = 'toast toast-' + type + ' show';
+  t.className = 'toast toast-' + (type||'info') + ' show';
   t.textContent = msg;
   setTimeout(()=>t.classList.remove('show'), 3500);
 }
@@ -509,37 +379,38 @@ function fmtDate(d, t){
 }
 function fmtNum(n){ return Number(n||0).toLocaleString('id-ID'); }
 function isoDate(d){ const x = new Date(d); return x.toISOString().slice(0,10); }
+
+// Wrapper google.script.run dengan defensif terhadap null + auto inject token
 function gas(fn, ...args){
   return new Promise((res, rej) => {
     if (typeof google === 'undefined' || !google.script || !google.script.run){
-      return rej(new Error('google.script.run tidak tersedia. Halaman ini harus dibuka via web app Apps Script, bukan langsung dari Drive/GitHub.'));
+      return rej(new Error('google.script.run tidak tersedia. Halaman ini harus dibuka via web app Apps Script.'));
     }
     google.script.run
       .withSuccessHandler(r => {
-        // Apps Script kadang mengirim null ke success handler bila fungsi
-        // backend selesai tanpa return (atau return value tidak bisa
-        // diserialisasi). Konversi jadi error yang informatif.
         if (r === null || r === undefined){
-          rej(new Error(`Backend "${fn}()" tidak mengembalikan response. Pastikan Code.gs sudah disimpan & web app di-deploy ulang (New deployment).`));
-        } else {
-          res(r);
-        }
+          rej(new Error(`Backend "${fn}()" tidak mengembalikan response. Pastikan Code.gs sudah di-Save & web app di-deploy ulang.`));
+        } else { res(r); }
       })
-      .withFailureHandler(err => rej(err || new Error('Server error tidak diketahui di "' + fn + '()"')))
+      .withFailureHandler(err => rej(err || new Error('Server error di "' + fn + '()"')))
       [fn](...args);
   });
 }
-
-// Wrapper aman: pasti dapat object {ok, message, ...}
 async function safeGas(fn, ...args){
   try {
-    const r = await safeGas(fn, ...args);
+    const r = await gas(fn, ...args);
     if (!r || typeof r !== 'object') return { ok:false, message:'Response tidak valid dari ' + fn };
     return r;
   } catch(e){
     return { ok:false, message: (e && e.message) ? e.message : String(e) };
   }
 }
+// gasAuth: wrapper yang otomatis menambahkan {token} sebagai argumen terakhir
+async function gasAuth(fn, ...args){
+  args.push({ token: STATE.token || '' });
+  return safeGas(fn, ...args);
+}
+
 function fileToBase64(file){
   return new Promise((res, rej) => {
     if (!file) return res(null);
@@ -549,12 +420,76 @@ function fileToBase64(file){
     r.readAsDataURL(file);
   });
 }
-
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
+// =============== AUTH ===============
+async function doLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errBox = document.getElementById('loginError');
+  errBox.style.display = 'none';
+  showLoading(true);
+  try {
+    const r = await safeGas('loginUser', email, password);
+    if (!r.ok) throw new Error(r.message);
+    STATE.token = r.token;
+    STATE.user  = r.user;
+    sessionStorage.setItem(TOKEN_KEY, r.token);
+    enterApp();
+  } catch(err){
+    errBox.style.display = 'block';
+    errBox.textContent = '⚠ ' + err.message;
+  } finally { showLoading(false); }
+}
+
+async function doLogout(){
+  if (!confirm('Logout sekarang?')) return;
+  showLoading(true);
+  try { await safeGas('logoutUser', STATE.token); } catch(_){}
+  STATE.token = '';
+  STATE.user = { email:'', nama:'', role:'Guest', status:'Inactive' };
+  sessionStorage.removeItem(TOKEN_KEY);
+  showLoading(false);
+  location.reload();
+}
+
+function enterApp(){
+  // Tampilkan info user
+  document.getElementById('userName').textContent  = STATE.user.nama  || '-';
+  document.getElementById('userEmail').textContent = STATE.user.email || '-';
+  document.getElementById('userEmailMobile').textContent = STATE.user.email || '';
+  const rb = document.getElementById('userRoleBadge');
+  rb.textContent = STATE.user.role || 'Guest';
+  rb.className = 'badge ' + (STATE.user.role === 'Admin' ? 'badge-blue' : (STATE.user.role === 'Staff' ? 'badge-green' : 'badge-gray'));
+
+  // Sembunyikan menu admin-only jika bukan admin
+  const adminOnly = STATE.user.role === 'Admin';
+  document.querySelectorAll('.admin-only').forEach(x => x.style.display = adminOnly ? '' : 'none');
+
+  // Pindah dari login screen ke main app
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = '';
+
+  // Set tanggal default & load dashboard
+  document.getElementById('trxTanggal').value = isoDate(new Date());
+  loadDashboard();
+}
+
+async function changePasswordPrompt(){
+  const lama = prompt('Password lama:');
+  if (!lama) return;
+  const baru = prompt('Password baru (min. 4 karakter):');
+  if (!baru) return;
+  showLoading(true);
+  const r = await gasAuth('changePassword', lama, baru);
+  showLoading(false);
+  toast(r.message, r.ok ? 'success' : 'error');
+}
+
 // =============== NAV ===============
-document.querySelectorAll('.sidebar-link').forEach(el => {
+document.querySelectorAll('.sidebar-link[data-view]').forEach(el => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.sidebar-link').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
@@ -576,70 +511,23 @@ function routeView(v){
   else if (v === 'settings') loadSettings();
 }
 
-// =============== INIT ===============
+// =============== INIT (auto-login dari token) ===============
 window.addEventListener('DOMContentLoaded', async () => {
+  const cachedToken = sessionStorage.getItem(TOKEN_KEY);
+  if (!cachedToken) return; // tampilkan login screen apa adanya
   showLoading(true);
   try {
-    const u = await safeGas('getCurrentUser');
-    STATE.user = u || STATE.user;
-    document.getElementById('userName').textContent  = u.nama  || '(belum terdaftar)';
-    document.getElementById('userEmail').textContent = u.email || '-';
-    document.getElementById('userEmailMobile').textContent = u.email || '';
-    const rb = document.getElementById('userRoleBadge');
-    rb.textContent = u.role || 'Guest';
-    rb.className = 'badge ' + (u.role === 'Admin' ? 'badge-blue' : (u.role === 'Staff' ? 'badge-green' : 'badge-gray'));
-
-    if (u.role !== 'Admin'){
-      document.querySelectorAll('.admin-only').forEach(x => x.style.display='none');
+    const r = await safeGas('verifyToken', cachedToken);
+    if (r.ok && r.user){
+      STATE.token = cachedToken;
+      STATE.user  = r.user;
+      enterApp();
+    } else {
+      sessionStorage.removeItem(TOKEN_KEY);
     }
-
-    // Akses ditolak → tampilkan overlay informatif (bukan toast yang langsung hilang)
-    if (!u.found || u.status !== 'Active'){
-      await showAccessDenied(u);
-      return; // jangan lanjut load dashboard
-    }
-
-    document.getElementById('trxTanggal').value = isoDate(new Date());
-    await loadDashboard();
-  } catch(e){ toast('Gagal init: ' + e.message, 'error'); }
+  } catch(_){ sessionStorage.removeItem(TOKEN_KEY); }
   finally { showLoading(false); }
 });
-
-async function showAccessDenied(u){
-  document.getElementById('adDetectedEmail').textContent = u.email || '(KOSONG — Apps Script tidak bisa membaca email Anda)';
-  let statusText = '';
-  if (!u.email)       statusText = 'Sebab kemungkinan: web app dideploy "Execute as: User accessing" tapi akun Anda dari domain Workspace berbeda. Solusi: deploy ulang dengan "Execute as: Me".';
-  else if (!u.found)  statusText = 'Email tidak ditemukan di sheet User. Periksa ejaan & spasi tersembunyi.';
-  else                statusText = 'Email terdaftar tapi Status = ' + (u.status||'-') + '. Minta Admin mengubah Status menjadi Active.';
-  document.getElementById('adDetectedStatus').textContent = statusText;
-
-  // Cek apakah belum ada admin aktif → tawarkan self-claim
-  try {
-    const w = await safeGas('whoami');
-    const hasAdmin = (w.registered_users||[]).some(r =>
-      String(r.role).trim() === 'Admin' && String(r.status).trim() === 'Active'
-    );
-    if (!hasAdmin && u.email){
-      document.getElementById('adNoAdmin').style.display = 'block';
-      document.getElementById('adNamaInput').value = '';
-    }
-  } catch(_){}
-
-  document.getElementById('accessDenied').style.display = 'block';
-}
-
-async function claimAdminBtn(){
-  const nama = document.getElementById('adNamaInput').value.trim();
-  if (!nama){ toast('Isi nama lengkap dulu.', 'error'); return; }
-  showLoading(true);
-  try {
-    const r = await safeGas('claimAdmin', nama);
-    if (!r.ok) throw new Error(r.message);
-    toast(r.message, 'success');
-    setTimeout(() => location.reload(), 1200);
-  } catch(e){ toast(e.message, 'error'); }
-  finally { showLoading(false); }
-}
 
 // =============== DASHBOARD ===============
 async function loadDashboard(){
@@ -651,22 +539,16 @@ async function loadDashboard(){
     document.getElementById('statLow').textContent   = r.hampirHabis;
     document.getElementById('statExp').textContent   = r.expired;
     document.getElementById('statTrx').textContent   = r.totalTransaksi7Hari;
-
     const lowBody = document.getElementById('lowStockBody');
-    lowBody.innerHTML = r.stokRendah.length ? r.stokRendah.map(x => `
-      <tr>
-        <td class="font-mono text-xs">${escapeHtml(x.id)}</td>
-        <td>${escapeHtml(x.nama)}</td>
-        <td><span class="badge ${x.stok<=x.min?'badge-red':'badge-yellow'}">${x.stok} ${escapeHtml(x.satuan||'')}</span></td>
-        <td>${x.min}</td>
-      </tr>`).join('') : `<tr><td colspan="4" class="text-center text-slate-400 py-6">Stok aman</td></tr>`;
-
+    lowBody.innerHTML = r.stokRendah.length ? r.stokRendah.map(x => `<tr>
+      <td class="font-mono text-xs">${escapeHtml(x.id)}</td>
+      <td>${escapeHtml(x.nama)}</td>
+      <td><span class="badge ${x.stok<=x.min?'badge-red':'badge-yellow'}">${x.stok} ${escapeHtml(x.satuan||'')}</span></td>
+      <td>${x.min}</td></tr>`).join('') : `<tr><td colspan="4" class="text-center text-slate-400 py-6">Stok aman</td></tr>`;
     const al = document.getElementById('alertList');
-    al.innerHTML = r.alerts.length ? r.alerts.map(a => `
-      <div class="flex items-start gap-2 p-3 bg-slate-50 rounded-lg">
-        <span class="badge ${a.tipe==='Expired'?'badge-red':'badge-yellow'}">${escapeHtml(a.tipe)}</span>
-        <span class="text-slate-700">${escapeHtml(a.pesan)}</span>
-      </div>`).join('') : `<div class="text-slate-400 text-center py-6">Tidak ada alert</div>`;
+    al.innerHTML = r.alerts.length ? r.alerts.map(a => `<div class="flex items-start gap-2 p-3 bg-slate-50 rounded-lg">
+      <span class="badge ${a.tipe==='Expired'?'badge-red':'badge-yellow'}">${escapeHtml(a.tipe)}</span>
+      <span class="text-slate-700">${escapeHtml(a.pesan)}</span></div>`).join('') : `<div class="text-slate-400 text-center py-6">Tidak ada alert</div>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
@@ -678,7 +560,6 @@ async function loadMaster(){
     const r = await safeGas('getMasterBarang');
     if (!r.ok) throw new Error(r.message);
     STATE.master = r.data || [];
-    // build kategori options
     const kats = [...new Set(STATE.master.map(x => x.Kategori).filter(Boolean))];
     const fil = document.getElementById('filterKategori');
     fil.innerHTML = '<option value="">Semua Kategori</option>' + kats.map(k => `<option>${escapeHtml(k)}</option>`).join('');
@@ -703,10 +584,7 @@ function renderMaster(){
     const stat = x.Status === 'Active' ? 'badge-green' : 'badge-gray';
     return `<tr>
       <td class="font-mono text-xs">${escapeHtml(x.ID_Barang)}</td>
-      <td>
-        <div class="font-medium">${escapeHtml(x.Nama_Barang)}</div>
-        ${x.Lokasi_Foto_Drive ? `<a href="${escapeHtml(x.Lokasi_Foto_Drive)}" target="_blank" class="text-xs text-blue-600">📎 Foto</a>` : ''}
-      </td>
+      <td><div class="font-medium">${escapeHtml(x.Nama_Barang)}</div>${x.Lokasi_Foto_Drive ? `<a href="${escapeHtml(x.Lokasi_Foto_Drive)}" target="_blank" class="text-xs text-blue-600">📎 Foto</a>` : ''}</td>
       <td>${escapeHtml(x.Kategori||'-')}</td>
       <td><span class="badge ${stokBadge}">${stok} ${escapeHtml(x.Satuan||'')}</span></td>
       <td>${escapeHtml(x.Satuan||'-')}</td>
@@ -716,8 +594,7 @@ function renderMaster(){
       <td>
         <button class="text-blue-600 hover:underline text-sm" onclick='editBarang(${JSON.stringify(x.ID_Barang)})'>Edit</button>
         ${STATE.user.role === 'Admin' ? `<button class="text-red-600 hover:underline text-sm ml-2" onclick='deleteBarang(${JSON.stringify(x.ID_Barang)})'>Hapus</button>` : ''}
-      </td>
-    </tr>`;
+      </td></tr>`;
   }).join('') : `<tr><td colspan="9" class="text-center text-slate-400 py-6">Tidak ada barang</td></tr>`;
 }
 
@@ -767,7 +644,7 @@ async function submitBarang(e){
       fileName:    fileObj ? fileObj.name   : '',
       fileType:    fileObj ? fileObj.type   : ''
     };
-    const r = await safeGas(id ? 'updateBarang' : 'saveBarang', data);
+    const r = await gasAuth(id ? 'updateBarang' : 'saveBarang', data);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     closeModal('modalBarang');
@@ -780,7 +657,7 @@ async function deleteBarang(id){
   if (!confirm('Yakin nonaktifkan barang ' + id + '?')) return;
   showLoading(true);
   try {
-    const r = await safeGas('deleteBarang', id);
+    const r = await gasAuth('deleteBarang', id);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     await loadMaster();
@@ -809,16 +686,15 @@ async function loadTrx(){
     if (!r.ok) throw new Error(r.message);
     STATE.trx = r.data || [];
     const tbody = document.getElementById('trxBody');
-    tbody.innerHTML = STATE.trx.length ? STATE.trx.map(t => `
-      <tr>
-        <td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
-        <td>${fmtDate(t.Tanggal)}</td>
-        <td><span class="badge ${t.Tipe==='Masuk'?'badge-green':'badge-red'}">${escapeHtml(t.Tipe)}</span></td>
-        <td>${escapeHtml(t.Nama_Barang)}</td>
-        <td class="font-medium">${fmtNum(t.Qty)}</td>
-        <td>${fmtNum(t.Stok_Sesudahnya)}</td>
-        <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td>
-        <td>${t.Lampiran_Drive_ID ? `<a href="${escapeHtml(t.Lampiran_Drive_ID)}" target="_blank" class="text-blue-600 text-xs">📎</a>` : '-'}</td>
+    tbody.innerHTML = STATE.trx.length ? STATE.trx.map(t => `<tr>
+      <td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
+      <td>${fmtDate(t.Tanggal)}</td>
+      <td><span class="badge ${t.Tipe==='Masuk'?'badge-green':'badge-red'}">${escapeHtml(t.Tipe)}</span></td>
+      <td>${escapeHtml(t.Nama_Barang)}</td>
+      <td class="font-medium">${fmtNum(t.Qty)}</td>
+      <td>${fmtNum(t.Stok_Sesudahnya)}</td>
+      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td>
+      <td>${t.Lampiran_Drive_ID ? `<a href="${escapeHtml(t.Lampiran_Drive_ID)}" target="_blank" class="text-blue-600 text-xs">📎</a>` : '-'}</td>
       </tr>`).join('') : `<tr><td colspan="8" class="text-center text-slate-400 py-6">Belum ada transaksi</td></tr>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
@@ -840,7 +716,7 @@ async function submitTrx(e){
       fileName:   fileObj ? fileObj.name   : '',
       fileType:   fileObj ? fileObj.type   : ''
     };
-    const r = await safeGas('saveTransaksi', data);
+    const r = await gasAuth('saveTransaksi', data);
     if (!r.ok) throw new Error(r.message);
     toast(r.message + ' (Stok akhir: ' + r.stokSesudah + ')', 'success');
     document.getElementById('formTrx').reset();
@@ -860,16 +736,13 @@ async function loadLaporan(){
     const tr = await safeGas('getTransaksi', {});
     if (!tr.ok) throw new Error(tr.message);
     STATE.trx = tr.data || [];
-
     const stokBody = document.getElementById('repStokBody');
-    stokBody.innerHTML = STATE.master.filter(x => x.Status==='Active').map(x => `
-      <tr>
-        <td class="font-mono text-xs">${escapeHtml(x.ID_Barang)}</td>
-        <td>${escapeHtml(x.Nama_Barang)}</td>
-        <td>${fmtNum(x.Stok_Akhir)} ${escapeHtml(x.Satuan||'')}</td>
-        <td>Rp ${fmtNum((Number(x.Stok_Akhir)||0)*(Number(x.Harga_Beli)||0))}</td>
+    stokBody.innerHTML = STATE.master.filter(x => x.Status==='Active').map(x => `<tr>
+      <td class="font-mono text-xs">${escapeHtml(x.ID_Barang)}</td>
+      <td>${escapeHtml(x.Nama_Barang)}</td>
+      <td>${fmtNum(x.Stok_Akhir)} ${escapeHtml(x.Satuan||'')}</td>
+      <td>Rp ${fmtNum((Number(x.Stok_Akhir)||0)*(Number(x.Harga_Beli)||0))}</td>
       </tr>`).join('') || `<tr><td colspan="4" class="text-center text-slate-400 py-6">-</td></tr>`;
-
     const masuk  = STATE.trx.filter(t => t.Tipe==='Masuk');
     const keluar = STATE.trx.filter(t => t.Tipe==='Keluar');
     document.getElementById('repTrxBody').innerHTML = `
@@ -897,25 +770,23 @@ function exportCSV(kind){
   toast('CSV diunduh', 'success');
 }
 
-// =============== USER ===============
+// =============== USER MANAGEMENT ===============
 async function loadUsers(){
   showLoading(true);
   try {
-    const r = await safeGas('getUsers');
+    const r = await gasAuth('getUsers');
     if (!r.ok) throw new Error(r.message);
     STATE.users = r.data || [];
-    document.getElementById('userBody').innerHTML = STATE.users.length ? STATE.users.map(u => `
-      <tr>
-        <td>${escapeHtml(u.Email)}</td>
-        <td>${escapeHtml(u.Nama_Lengkap||'-')}</td>
-        <td><span class="badge ${u.Role==='Admin'?'badge-blue':(u.Role==='Staff'?'badge-green':'badge-gray')}">${escapeHtml(u.Role)}</span></td>
-        <td><span class="badge ${u.Status==='Active'?'badge-green':'badge-red'}">${escapeHtml(u.Status)}</span></td>
-        <td class="text-xs">${u.Terakhir_Akses?fmtDate(u.Terakhir_Akses,true):'-'}</td>
-        <td>
-          <button class="text-blue-600 hover:underline text-sm" onclick='editUser(${JSON.stringify(u.Email)})'>Edit</button>
-          <button class="text-amber-600 hover:underline text-sm ml-2" onclick='toggleUser(${JSON.stringify(u.Email)})'>${u.Status==='Active'?'Nonaktifkan':'Aktifkan'}</button>
-        </td>
-      </tr>`).join('') : `<tr><td colspan="6" class="text-center text-slate-400 py-6">-</td></tr>`;
+    document.getElementById('userBody').innerHTML = STATE.users.length ? STATE.users.map(u => `<tr>
+      <td>${escapeHtml(u.Email)}</td>
+      <td>${escapeHtml(u.Nama_Lengkap||'-')}</td>
+      <td><span class="badge ${u.Role==='Admin'?'badge-blue':(u.Role==='Staff'?'badge-green':'badge-gray')}">${escapeHtml(u.Role)}</span></td>
+      <td><span class="badge ${u.Status==='Active'?'badge-green':'badge-red'}">${escapeHtml(u.Status)}</span></td>
+      <td class="text-xs">${u.Terakhir_Akses?fmtDate(u.Terakhir_Akses,true):'-'}</td>
+      <td>
+        <button class="text-blue-600 hover:underline text-sm" onclick='editUser(${JSON.stringify(u.Email)})'>Edit</button>
+        <button class="text-amber-600 hover:underline text-sm ml-2" onclick='toggleUser(${JSON.stringify(u.Email)})'>${u.Status==='Active'?'Nonaktifkan':'Aktifkan'}</button>
+      </td></tr>`).join('') : `<tr><td colspan="6" class="text-center text-slate-400 py-6">-</td></tr>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
@@ -925,11 +796,12 @@ function openUserModal(){
   document.getElementById('formUser').reset();
   document.getElementById('usrMode').value = 'add';
   document.getElementById('usrEmail').readOnly = false;
+  document.getElementById('usrPasswordWrap').style.display = '';
+  document.getElementById('usrPassword').value = 'changeme123';
   openModal('modalUser');
 }
 function editUser(email){
-  const u = STATE.users.find(x => x.Email === email);
-  if (!u) return;
+  const u = STATE.users.find(x => x.Email === email); if (!u) return;
   document.getElementById('modalUserTitle').textContent = 'Edit User';
   document.getElementById('usrMode').value   = 'edit';
   document.getElementById('usrEmail').value  = u.Email;
@@ -937,6 +809,7 @@ function editUser(email){
   document.getElementById('usrNama').value   = u.Nama_Lengkap;
   document.getElementById('usrRole').value   = u.Role;
   document.getElementById('usrStatus').value = u.Status;
+  document.getElementById('usrPasswordWrap').style.display = 'none'; // password tidak diedit di sini
   openModal('modalUser');
 }
 
@@ -949,9 +822,10 @@ async function submitUser(e){
     const nama  = document.getElementById('usrNama').value;
     const role  = document.getElementById('usrRole').value;
     const status= document.getElementById('usrStatus').value;
+    const password = document.getElementById('usrPassword').value;
     let r;
-    if (mode === 'add') r = await safeGas('saveUser', { email, nama, role, status });
-    else                r = await safeGas('updateUserRole', email, role, status);
+    if (mode === 'add') r = await gasAuth('saveUser', { email, nama, role, status, password });
+    else                r = await gasAuth('updateUserRole', email, role, status);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     closeModal('modalUser');
@@ -966,7 +840,7 @@ async function toggleUser(email){
   if (!confirm(`Ubah status ${email} menjadi ${newStat}?`)) return;
   showLoading(true);
   try {
-    const r = await safeGas('updateUserRole', email, u.Role, newStat);
+    const r = await gasAuth('updateUserRole', email, u.Role, newStat);
     if (!r.ok) throw new Error(r.message);
     toast('Status diubah', 'success');
     await loadUsers();
@@ -983,15 +857,14 @@ async function loadLog(){
       tanggalSampai: document.getElementById('logTo').value,
       userEmail:     document.getElementById('logUser').value
     };
-    const r = await safeGas('getLogValidasi', filter);
+    const r = await gasAuth('getLogValidasi', filter);
     if (!r.ok) throw new Error(r.message);
-    document.getElementById('logBody').innerHTML = r.data.length ? r.data.map(l => `
-      <tr>
-        <td class="text-xs">${fmtDate(l.Waktu,true)}</td>
-        <td>${escapeHtml(l.Aksi)}</td>
-        <td>${escapeHtml(l.Lokasi)}</td>
-        <td class="text-red-600 text-xs">${escapeHtml(l.Pesan_Error)}</td>
-        <td class="text-xs">${escapeHtml(l.User_Email||'-')}</td>
+    document.getElementById('logBody').innerHTML = r.data.length ? r.data.map(l => `<tr>
+      <td class="text-xs">${fmtDate(l.Waktu,true)}</td>
+      <td>${escapeHtml(l.Aksi)}</td>
+      <td>${escapeHtml(l.Lokasi)}</td>
+      <td class="text-red-600 text-xs">${escapeHtml(l.Pesan_Error)}</td>
+      <td class="text-xs">${escapeHtml(l.User_Email||'-')}</td>
       </tr>`).join('') : `<tr><td colspan="5" class="text-center text-slate-400 py-6">Tidak ada log</td></tr>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
@@ -1001,7 +874,7 @@ async function clearOldLogs(){
   if (!confirm('Hapus semua log yang lebih dari 30 hari?')) return;
   showLoading(true);
   try {
-    const r = await safeGas('clearOldLogs', 30);
+    const r = await gasAuth('clearOldLogs', 30);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     await loadLog();
@@ -1036,7 +909,7 @@ async function saveSettings(e){
       minStokGlobal:      Number(document.getElementById('setMinStok').value),
       namaPerusahaan:     document.getElementById('setNama').value.trim()
     };
-    const r = await safeGas('updateSettings', s);
+    const r = await gasAuth('updateSettings', s);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
   } catch(err){ toast(err.message, 'error'); }
@@ -1045,21 +918,15 @@ async function saveSettings(e){
 
 async function manualBackup(){
   showLoading(true);
-  try {
-    const r = await safeGas('backupData');
-    if (!r.ok) throw new Error(r.message);
-    toast('Backup OK: ' + r.file, 'success');
-  } catch(e){ toast(e.message, 'error'); }
+  try { const r = await safeGas('backupData'); if (!r.ok) throw new Error(r.message); toast('Backup OK: ' + r.file, 'success'); }
+  catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
 
 async function manualAlert(){
   showLoading(true);
-  try {
-    const r = await safeGas('checkAndSendAlerts');
-    if (!r.ok) throw new Error(r.message);
-    toast(r.message, 'success');
-  } catch(e){ toast(e.message, 'error'); }
+  try { const r = await safeGas('checkAndSendAlerts'); if (!r.ok) throw new Error(r.message); toast(r.message, 'success'); }
+  catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
 </script>
