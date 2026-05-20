@@ -65,13 +65,13 @@
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
-
+ 
 <!-- LOADING -->
 <div id="loading" class="loading-overlay"><div class="spinner"></div></div>
-
+ 
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
-
+ 
 <!-- ====================== LOGIN SCREEN ====================== -->
 <div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#3b82f6 100%);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="max-width:420px;width:100%;background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 25px 50px rgba(0,0,0,.25)">
@@ -80,7 +80,7 @@
       <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin:0">Aplikasi Stok Barang</h1>
       <p style="color:#64748b;font-size:14px;margin:4px 0 0">Silakan masuk untuk melanjutkan</p>
     </div>
-
+ 
     <form id="formLogin" onsubmit="doLogin(event)">
       <div style="margin-bottom:14px">
         <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Email</label>
@@ -93,7 +93,7 @@
       <div id="loginError" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px"></div>
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;font-size:15px">Masuk</button>
     </form>
-
+ 
     <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:12px;color:#64748b;text-align:center;line-height:1.6">
       <b>Login pertama kali?</b><br>
       Pakai akun default Admin:<br>
@@ -103,11 +103,11 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- ====================== MAIN APP (hidden until logged in) ====================== -->
 <div id="appShell" style="display:none">
 <div class="flex">
-
+ 
   <!-- SIDEBAR -->
   <aside id="sidebar" class="w-60 bg-slate-900 text-white min-h-screen p-4 flex-shrink-0 relative">
     <div class="flex items-center gap-2 mb-6 px-2">
@@ -136,14 +136,14 @@
       </div>
     </div>
   </aside>
-
+ 
   <!-- MAIN -->
   <main id="main" class="flex-1 p-6 md:p-8 ml-0">
     <div class="flex items-center justify-between mb-4 md:hidden">
       <button class="btn btn-secondary" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Menu</button>
       <div class="text-sm text-slate-600" id="userEmailMobile">-</div>
     </div>
-
+ 
     <!-- VIEW: DASHBOARD -->
     <section id="view-dashboard" class="view active">
       <h1 class="text-2xl font-bold text-slate-800 mb-1">Dashboard</h1>
@@ -168,7 +168,7 @@
         </div>
       </div>
     </section>
-
+ 
     <!-- VIEW: MASTER -->
     <section id="view-master" class="view">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -186,7 +186,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: TRANSAKSI -->
     <section id="view-transaksi" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Transaksi Stok</h1>
@@ -218,7 +218,7 @@
         </div>
       </div>
     </section>
-
+ 
     <!-- VIEW: LAPORAN -->
     <section id="view-laporan" class="view">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -228,7 +228,7 @@
           <button class="btn btn-secondary" onclick="exportCSV('trx')">⬇ CSV Transaksi</button>
         </div>
       </div>
-
+ 
       <!-- Filter periode -->
       <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
         <div>
@@ -242,7 +242,7 @@
         <button class="btn btn-primary" onclick="loadLaporan()">🔄 Filter</button>
         <span class="text-xs text-slate-500">Kosongkan = semua periode</span>
       </div>
-
+ 
       <!-- Rekap Stok Sekarang -->
       <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -254,7 +254,7 @@
           <tbody id="repStokBody"></tbody>
         </table></div>
       </div>
-
+ 
       <!-- Rekap Stok Masuk -->
       <div class="bg-white rounded-xl shadow-sm p-5 mb-4 border-l-4 border-green-500">
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -269,7 +269,7 @@
           <tbody id="repMasukBody"></tbody>
         </table></div>
       </div>
-
+ 
       <!-- Rekap Stok Keluar -->
       <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-500">
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -285,7 +285,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: USER -->
     <section id="view-users" class="view">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -299,7 +299,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: LOG -->
     <section id="view-log" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Log &amp; Validasi</h1>
@@ -317,7 +317,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: SETTINGS -->
     <section id="view-settings" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Pengaturan</h1>
@@ -348,7 +348,7 @@
   </main>
 </div>
 </div>
-
+ 
 <!-- MODAL: BARANG -->
 <div id="modalBarang" class="modal-overlay">
   <div class="modal p-6">
@@ -376,7 +376,7 @@
     </form>
   </div>
 </div>
-
+ 
 <!-- MODAL: USER -->
 <div id="modalUser" class="modal-overlay">
   <div class="modal p-6">
@@ -400,7 +400,7 @@
     </form>
   </div>
 </div>
-
+ 
 <script>
 // =============== STATE ===============
 let STATE = {
@@ -409,7 +409,7 @@ let STATE = {
   master: [], trx: [], users: []
 };
 const TOKEN_KEY = 'stokBarang_authToken';
-
+ 
 // =============== UTIL ===============
 function showLoading(b){ document.getElementById('loading').classList.toggle('show', b); }
 function toast(msg, type){
@@ -431,7 +431,7 @@ function fmtDate(d, t){
 }
 function fmtNum(n){ return Number(n||0).toLocaleString('id-ID'); }
 function isoDate(d){ const x = new Date(d); return x.toISOString().slice(0,10); }
-
+ 
 // Wrapper google.script.run dengan defensif terhadap null + auto inject token
 function gas(fn, ...args){
   return new Promise((res, rej) => {
@@ -462,7 +462,7 @@ async function gasAuth(fn, ...args){
   args.push({ token: STATE.token || '' });
   return safeGas(fn, ...args);
 }
-
+ 
 function fileToBase64(file){
   return new Promise((res, rej) => {
     if (!file) return res(null);
@@ -474,7 +474,7 @@ function fileToBase64(file){
 }
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-
+ 
 // =============== AUTH ===============
 async function doLogin(e){
   e.preventDefault();
@@ -495,7 +495,7 @@ async function doLogin(e){
     errBox.textContent = '⚠ ' + err.message;
   } finally { showLoading(false); }
 }
-
+ 
 async function doLogout(){
   if (!confirm('Logout sekarang?')) return;
   showLoading(true);
@@ -506,7 +506,7 @@ async function doLogout(){
   showLoading(false);
   location.reload();
 }
-
+ 
 function enterApp(){
   // Tampilkan info user
   document.getElementById('userName').textContent  = STATE.user.nama  || '-';
@@ -515,20 +515,20 @@ function enterApp(){
   const rb = document.getElementById('userRoleBadge');
   rb.textContent = STATE.user.role || 'Guest';
   rb.className = 'badge ' + (STATE.user.role === 'Admin' ? 'badge-blue' : (STATE.user.role === 'Staff' ? 'badge-green' : 'badge-gray'));
-
+ 
   // Sembunyikan menu admin-only jika bukan admin
   const adminOnly = STATE.user.role === 'Admin';
   document.querySelectorAll('.admin-only').forEach(x => x.style.display = adminOnly ? '' : 'none');
-
+ 
   // Pindah dari login screen ke main app
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = '';
-
+ 
   // Set tanggal default & load dashboard
   document.getElementById('trxTanggal').value = isoDate(new Date());
   loadDashboard();
 }
-
+ 
 async function changePasswordPrompt(){
   const lama = prompt('Password lama:');
   if (!lama) return;
@@ -539,7 +539,7 @@ async function changePasswordPrompt(){
   showLoading(false);
   toast(r.message, r.ok ? 'success' : 'error');
 }
-
+ 
 // =============== NAV ===============
 document.querySelectorAll('.sidebar-link[data-view]').forEach(el => {
   el.addEventListener('click', () => {
@@ -552,7 +552,7 @@ document.querySelectorAll('.sidebar-link[data-view]').forEach(el => {
     routeView(v);
   });
 });
-
+ 
 function routeView(v){
   if (v === 'dashboard') loadDashboard();
   else if (v === 'master') loadMaster();
@@ -562,7 +562,7 @@ function routeView(v){
   else if (v === 'log')      loadLog();
   else if (v === 'settings') loadSettings();
 }
-
+ 
 // =============== INIT (auto-login dari token) ===============
 window.addEventListener('DOMContentLoaded', async () => {
   const cachedToken = sessionStorage.getItem(TOKEN_KEY);
@@ -580,7 +580,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(_){ sessionStorage.removeItem(TOKEN_KEY); }
   finally { showLoading(false); }
 });
-
+ 
 // =============== DASHBOARD ===============
 async function loadDashboard(){
   showLoading(true);
@@ -604,7 +604,7 @@ async function loadDashboard(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== MASTER BARANG ===============
 async function loadMaster(){
   showLoading(true);
@@ -620,7 +620,7 @@ async function loadMaster(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 function renderMaster(){
   const q = document.getElementById('searchBarang').value.toLowerCase();
   const k = document.getElementById('filterKategori').value;
@@ -649,7 +649,7 @@ function renderMaster(){
       </td></tr>`;
   }).join('') : `<tr><td colspan="9" class="text-center text-slate-400 py-6">Tidak ada barang</td></tr>`;
 }
-
+ 
 function openBarangModal(){
   document.getElementById('modalBarangTitle').textContent = 'Tambah Barang';
   document.getElementById('formBarang').reset();
@@ -674,7 +674,7 @@ function editBarang(id){
   document.getElementById('brgExpired').value    = x.Expired_Date ? isoDate(x.Expired_Date) : '';
   openModal('modalBarang');
 }
-
+ 
 async function submitBarang(e){
   e.preventDefault();
   showLoading(true);
@@ -704,7 +704,7 @@ async function submitBarang(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function deleteBarang(id){
   if (!confirm('Yakin nonaktifkan barang ' + id + '?')) return;
   showLoading(true);
@@ -716,7 +716,7 @@ async function deleteBarang(id){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== TRANSAKSI ===============
 function fillBarangSelect(){
   const sel = document.getElementById('trxBarang');
@@ -725,7 +725,7 @@ function fillBarangSelect(){
       .map(x => `<option value="${escapeHtml(x.ID_Barang)}">${escapeHtml(x.Nama_Barang)} (stok: ${x.Stok_Akhir} ${escapeHtml(x.Satuan||'')})</option>`)
       .join('');
 }
-
+ 
 async function loadTrx(){
   showLoading(true);
   try {
@@ -751,7 +751,7 @@ async function loadTrx(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function submitTrx(e){
   e.preventDefault();
   showLoading(true);
@@ -779,7 +779,7 @@ async function submitTrx(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== LAPORAN ===============
 async function loadLaporan(){
   showLoading(true);
@@ -797,7 +797,7 @@ async function loadLaporan(){
       </tr>`).join('') || `<tr><td colspan="4" class="text-center text-slate-400 py-6">-</td></tr>`;
     const masuk  = STATE.trx.filter(t => t.Tipe==='Masuk');
     const keluar = STATE.trx.filter(t => t.Tipe==='Keluar');
-
+ 
     // Rekap Masuk
     document.getElementById('repMasukCount').textContent = masuk.length;
     document.getElementById('repMasukTotal').textContent = fmtNum(masuk.reduce((s,t)=>s+Number(t.Qty||0),0));
@@ -805,9 +805,10 @@ async function loadLaporan(){
       <td>${i+1}</td><td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
       <td>${fmtDate(t.Tanggal)}</td><td>${escapeHtml(t.Nama_Barang)}</td>
       <td class="font-medium">${fmtNum(t.Qty)}</td><td>${escapeHtml(t.Keterangan||'-')}</td>
-      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td></tr>`).join('')
-      : `<tr><td colspan="7" class="text-center text-slate-400 py-4">Belum ada transaksi masuk</td></tr>`;
-
+      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td>
+      <td><button class="text-blue-600 hover:underline text-sm" onclick="cetakSuratJalanSingle('${escapeHtml(t.ID_Transaksi)}')">🖨</button></td></tr>`).join('')
+      : `<tr><td colspan="8" class="text-center text-slate-400 py-4">Belum ada transaksi masuk</td></tr>`;
+ 
     // Rekap Keluar
     document.getElementById('repKeluarCount').textContent = keluar.length;
     document.getElementById('repKeluarTotal').textContent = fmtNum(keluar.reduce((s,t)=>s+Number(t.Qty||0),0));
@@ -815,12 +816,13 @@ async function loadLaporan(){
       <td>${i+1}</td><td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
       <td>${fmtDate(t.Tanggal)}</td><td>${escapeHtml(t.Nama_Barang)}</td>
       <td class="font-medium">${fmtNum(t.Qty)}</td><td>${escapeHtml(t.Keterangan||'-')}</td>
-      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td></tr>`).join('')
-      : `<tr><td colspan="7" class="text-center text-slate-400 py-4">Belum ada transaksi keluar</td></tr>`;
+      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td>
+      <td><button class="text-blue-600 hover:underline text-sm" onclick="cetakSuratJalanSingle('${escapeHtml(t.ID_Transaksi)}')">🖨</button></td></tr>`).join('')
+      : `<tr><td colspan="8" class="text-center text-slate-400 py-4">Belum ada transaksi keluar</td></tr>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 function exportCSV(kind){
   let rows = [], filename = '';
   if (kind === 'master'){
@@ -838,7 +840,7 @@ function exportCSV(kind){
   a.href = URL.createObjectURL(blob); a.download = filename; a.click();
   toast('CSV diunduh', 'success');
 }
-
+ 
 // =============== USER MANAGEMENT ===============
 async function loadUsers(){
   showLoading(true);
@@ -859,7 +861,7 @@ async function loadUsers(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 function openUserModal(){
   document.getElementById('modalUserTitle').textContent = 'Tambah User';
   document.getElementById('formUser').reset();
@@ -881,7 +883,7 @@ function editUser(email){
   document.getElementById('usrPasswordWrap').style.display = 'none'; // password tidak diedit di sini
   openModal('modalUser');
 }
-
+ 
 async function submitUser(e){
   e.preventDefault();
   showLoading(true);
@@ -902,7 +904,7 @@ async function submitUser(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function toggleUser(email){
   const u = STATE.users.find(x => x.Email === email); if (!u) return;
   const newStat = u.Status === 'Active' ? 'Inactive' : 'Active';
@@ -916,7 +918,7 @@ async function toggleUser(email){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== LOG ===============
 async function loadLog(){
   showLoading(true);
@@ -938,7 +940,7 @@ async function loadLog(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function clearOldLogs(){
   if (!confirm('Hapus semua log yang lebih dari 30 hari?')) return;
   showLoading(true);
@@ -950,7 +952,7 @@ async function clearOldLogs(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== SETTINGS ===============
 async function loadSettings(){
   showLoading(true);
@@ -966,7 +968,7 @@ async function loadSettings(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function saveSettings(e){
   e.preventDefault();
   showLoading(true);
@@ -984,14 +986,14 @@ async function saveSettings(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function manualBackup(){
   showLoading(true);
   try { const r = await safeGas('backupData'); if (!r.ok) throw new Error(r.message); toast('Backup OK: ' + r.file, 'success'); }
   catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function manualAlert(){
   showLoading(true);
   try { const r = await safeGas('checkAndSendAlerts'); if (!r.ok) throw new Error(r.message); toast(r.message, 'success'); }
@@ -1001,20 +1003,20 @@ async function manualAlert(){
 </script>
 </body>
 </html>
-
-
+ 
+ 
 <!-- FUNGSI CETAK SURAT JALAN & REKAP (ditambahkan sebelum </body>) -->
 <script>
 // =============== CETAK SURAT JALAN / TANDA TERIMA ===============
 function cetakSuratJalan(tipe){
   const items = STATE.trx.filter(t => t.Tipe === tipe);
   if (!items.length){ toast('Tidak ada data ' + tipe + ' untuk dicetak.', 'error'); return; }
-
-  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT Contoh Sejahtera';
+ 
+  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT KKLABEL INDONESIA';
   const judul = tipe === 'Keluar' ? 'SURAT JALAN' : 'SURAT TANDA TERIMA BARANG';
   const totalQty = items.reduce((s,t) => s + Number(t.Qty||0), 0);
   const today = fmtDate(new Date());
-
+ 
   let tableRows = '';
   items.forEach((t, i) => {
     tableRows += `<tr>
@@ -1026,7 +1028,7 @@ function cetakSuratJalan(tipe){
       <td style="border:1px solid #333;padding:6px">${escapeHtml(t.Keterangan||'-')}</td>
     </tr>`;
   });
-
+ 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>${judul}</title>
     <style>
@@ -1054,10 +1056,10 @@ function cetakSuratJalan(tipe){
         <p>Tanggal Cetak: ${today}</p>
       </div>
     </div>
-
+ 
     <div class="title">${judul}</div>
     <div class="subtitle">No. Dokumen: ${tipe.toUpperCase()}-${new Date().getTime().toString(36).toUpperCase()} | Tanggal: ${today}</div>
-
+ 
     <table>
       <thead>
         <tr>
@@ -1078,7 +1080,7 @@ function cetakSuratJalan(tipe){
         </tr>
       </tbody>
     </table>
-
+ 
     <div class="signatures">
       <div class="sig-box">
         <div>Yang Menyerahkan</div>
@@ -1093,25 +1095,25 @@ function cetakSuratJalan(tipe){
         <div class="line">(______________________)</div>
       </div>
     </div>
-
+ 
     <div class="footer">Dicetak dari Aplikasi Stok Barang — ${today}</div>
-
+ 
     <script>window.onload = function(){ window.print(); }<\/script>
   </body></html>`;
-
+ 
   const w = window.open('', '_blank');
   if (w) { w.document.write(html); w.document.close(); }
   else toast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error');
 }
-
+ 
 function cetakRekapStok(){
   const items = STATE.master.filter(x => x.Status === 'Active');
   if (!items.length){ toast('Tidak ada data stok untuk dicetak.', 'error'); return; }
-
-  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT Contoh Sejahtera';
+ 
+  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT KKLABEL INDONESIA';
   const today = fmtDate(new Date());
   let totalNilai = 0;
-
+ 
   let tableRows = '';
   items.forEach((x, i) => {
     const nilai = (Number(x.Stok_Akhir)||0) * (Number(x.Harga_Beli)||0);
@@ -1125,7 +1127,7 @@ function cetakRekapStok(){
       <td style="border:1px solid #333;padding:6px;text-align:right">Rp ${fmtNum(nilai)}</td>
     </tr>`;
   });
-
+ 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>REKAP STOK BARANG</title>
     <style>
@@ -1147,10 +1149,10 @@ function cetakRekapStok(){
       <h1>${escapeHtml(namaPerusahaan)}</h1>
       <p>Tanggal Cetak: ${today}</p>
     </div>
-
+ 
     <div class="title">REKAP STOK BARANG</div>
     <div class="subtitle">Per tanggal ${today} | Total ${items.length} item aktif</div>
-
+ 
     <table>
       <thead>
         <tr>
@@ -1170,12 +1172,116 @@ function cetakRekapStok(){
         </tr>
       </tbody>
     </table>
-
+ 
     <div class="footer">Dicetak dari Aplikasi Stok Barang — ${today}</div>
-
+ 
     <script>window.onload = function(){ window.print(); }<\/script>
   </body></html>`;
-
+ 
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else toast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error');
+}
+</script>
+ 
+<script>
+// =============== CETAK PER 1 TRANSAKSI (SINGLE) ===============
+function cetakSuratJalanSingle(idTrx){
+  const t = STATE.trx.find(x => x.ID_Transaksi === idTrx);
+  if (!t){ toast('Transaksi tidak ditemukan: ' + idTrx, 'error'); return; }
+ 
+  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT KKLABEL INDONESIA';
+  const judul = t.Tipe === 'Keluar' ? 'SURAT JALAN' : 'SURAT TANDA TERIMA BARANG';
+  const today = fmtDate(new Date());
+ 
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${judul} - ${escapeHtml(idTrx)}</title>
+    <style>
+      @page { size:A4; margin:15mm; }
+      body { font-family:Arial,sans-serif; font-size:12px; color:#111; margin:0; padding:20px; }
+      .header { border-bottom:3px solid #111; padding-bottom:12px; margin-bottom:16px; }
+      .header h1 { margin:0; font-size:16px; }
+      .header p { margin:2px 0; font-size:11px; color:#444; }
+      .title { text-align:center; font-size:18px; font-weight:bold; margin:20px 0 6px; text-decoration:underline; }
+      .subtitle { text-align:center; font-size:12px; color:#555; margin-bottom:20px; }
+      .info-box { background:#f9fafb; border:1px solid #ddd; border-radius:6px; padding:14px; margin-bottom:20px; }
+      .info-box table { width:100%; border:none; }
+      .info-box td { padding:4px 8px; border:none; font-size:12px; }
+      .info-box td:first-child { font-weight:bold; width:140px; color:#374151; }
+      .item-table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+      .item-table th { background:#f3f4f6; border:1px solid #333; padding:8px; font-size:11px; text-transform:uppercase; }
+      .item-table td { border:1px solid #333; padding:8px; }
+      .signatures { display:flex; justify-content:space-between; margin-top:60px; }
+      .sig-box { text-align:center; width:200px; }
+      .sig-box .line { border-top:1px solid #333; margin-top:70px; padding-top:4px; }
+      .footer { text-align:center; margin-top:40px; font-size:10px; color:#999; }
+      @media print { body { padding:0; } }
+    </style>
+  </head><body>
+    <div class="header">
+      <h1>${escapeHtml(namaPerusahaan)}</h1>
+      <p>Tanggal Cetak: ${today}</p>
+    </div>
+ 
+    <div class="title">${judul}</div>
+    <div class="subtitle">No. Dokumen: ${escapeHtml(idTrx)} | Tanggal: ${fmtDate(t.Tanggal)}</div>
+ 
+    <div class="info-box">
+      <table>
+        <tr><td>ID Transaksi</td><td>: ${escapeHtml(t.ID_Transaksi)}</td></tr>
+        <tr><td>Tanggal</td><td>: ${fmtDate(t.Tanggal)}</td></tr>
+        <tr><td>Tipe</td><td>: Stok ${escapeHtml(t.Tipe)}</td></tr>
+        <tr><td>Nama Barang</td><td>: ${escapeHtml(t.Nama_Barang)}</td></tr>
+        <tr><td>Jumlah (Qty)</td><td>: <b>${fmtNum(t.Qty)}</b></td></tr>
+        <tr><td>Keterangan</td><td>: ${escapeHtml(t.Keterangan||'-')}</td></tr>
+        <tr><td>Dibuat Oleh</td><td>: ${escapeHtml(t.User_Email||'-')}</td></tr>
+      </table>
+    </div>
+ 
+    <table class="item-table">
+      <thead>
+        <tr>
+          <th style="width:40px">No</th>
+          <th>Nama Barang</th>
+          <th style="width:80px">Qty</th>
+          <th>Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align:center">1</td>
+          <td>${escapeHtml(t.Nama_Barang)}</td>
+          <td style="text-align:center;font-weight:bold;font-size:14px">${fmtNum(t.Qty)}</td>
+          <td>${escapeHtml(t.Keterangan||'-')}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="text-align:right;font-weight:bold;border:1px solid #333;padding:8px">TOTAL:</td>
+          <td style="text-align:center;font-weight:bold;font-size:14px;border:1px solid #333;padding:8px">${fmtNum(t.Qty)}</td>
+          <td style="border:1px solid #333;padding:8px"></td>
+        </tr>
+      </tbody>
+    </table>
+ 
+    <div class="signatures">
+      <div class="sig-box">
+        <div>Yang Menyerahkan</div>
+        <div class="line">(______________________)</div>
+      </div>
+      <div class="sig-box">
+        <div>${t.Tipe === 'Keluar' ? 'Pengemudi / Kurir' : 'Petugas Gudang'}</div>
+        <div class="line">(______________________)</div>
+      </div>
+      <div class="sig-box">
+        <div>Yang Menerima</div>
+        <div class="line">(______________________)</div>
+      </div>
+    </div>
+ 
+    <div class="footer">Dicetak dari Aplikasi Stok Barang — ${today}</div>
+ 
+    <script>window.onload = function(){ window.print(); }<\/script>
+  </body></html>`;
+ 
   const w = window.open('', '_blank');
   if (w) { w.document.write(html); w.document.close(); }
   else toast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error');
