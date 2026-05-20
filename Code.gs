@@ -1,6 +1,8 @@
 /**
  * ============================================================================
  *  APLIKASI STOK BARANG - Google Apps Script (Backend)
+ *  Version: 1.0.0
+ *  Last Updated: 2026-05-20
  * ============================================================================
  *  Spreadsheet : "Database_StokBarang" (4 sheet: Master_Barang, Transaksi, User,
  *                Log_Validasi)
