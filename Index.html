@@ -212,8 +212,8 @@
             <button class="btn btn-secondary" onclick="loadTrx()">Filter</button>
           </div>
           <div class="overflow-x-auto"><table>
-            <thead><tr><th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th><th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th></tr></thead>
-            <tbody id="trxBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+            <thead><tr><th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th><th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th><th>Aksi</th></tr></thead>
+            <tbody id="trxBody"><tr><td colspan="9" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
           </table></div>
         </div>
       </div>
@@ -224,20 +224,65 @@
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h1 class="text-2xl font-bold text-slate-800">Laporan</h1>
         <div class="flex gap-2">
-          <button class="btn btn-secondary" onclick="exportCSV('master')">⬇ Export CSV Stok</button>
-          <button class="btn btn-secondary" onclick="exportCSV('trx')">⬇ Export CSV Transaksi</button>
-          <button class="btn btn-success" onclick="window.print()">🖨 Print PDF</button>
+          <button class="btn btn-secondary" onclick="exportCSV('master')">⬇ CSV Stok</button>
+          <button class="btn btn-secondary" onclick="exportCSV('trx')">⬇ CSV Transaksi</button>
         </div>
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="bg-white rounded-xl shadow-sm p-5">
-          <h3 class="font-semibold text-slate-800 mb-3">Rekap Stok</h3>
-          <div class="overflow-x-auto"><table><thead><tr><th>ID</th><th>Nama</th><th>Stok Akhir</th><th>Nilai</th></tr></thead><tbody id="repStokBody"></tbody></table></div>
+
+      <!-- Filter periode -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+        <div>
+          <label class="text-xs font-medium text-slate-600">Periode Dari</label>
+          <input id="lapFrom" type="date" class="input max-w-[160px]">
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-5">
-          <h3 class="font-semibold text-slate-800 mb-3">Rekap Transaksi</h3>
-          <div class="overflow-x-auto"><table><thead><tr><th>Tipe</th><th>Jumlah Trx</th><th>Total Qty</th></tr></thead><tbody id="repTrxBody"></tbody></table></div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Sampai</label>
+          <input id="lapTo" type="date" class="input max-w-[160px]">
         </div>
+        <button class="btn btn-primary" onclick="loadLaporan()">🔄 Filter</button>
+        <span class="text-xs text-slate-500">Kosongkan = semua periode</span>
+      </div>
+
+      <!-- Rekap Stok Sekarang -->
+      <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 class="font-semibold text-slate-800">📦 Rekap Stok Saat Ini</h3>
+          <button class="btn btn-secondary" onclick="cetakRekapStok()">🖨 Cetak Rekap Stok</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>ID</th><th>Nama</th><th>Kategori</th><th>Stok Akhir</th><th>Satuan</th><th>Nilai</th></tr></thead>
+          <tbody id="repStokBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- Rekap Stok Masuk -->
+      <div class="bg-white rounded-xl shadow-sm p-5 mb-4 border-l-4 border-green-500">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-semibold text-slate-800">📥 Rekap Stok Masuk</h3>
+            <p class="text-xs text-slate-500 mt-1">Total: <span id="repMasukTotal" class="font-bold text-green-600">0</span> qty dari <span id="repMasukCount">0</span> transaksi</p>
+          </div>
+          <button class="btn btn-success" onclick="cetakSuratJalan('Masuk')">🖨 Cetak Surat Tanda Terima</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>No</th><th>ID Trx</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Keterangan</th><th>User</th></tr></thead>
+          <tbody id="repMasukBody"></tbody>
+        </table></div>
+      </div>
+
+      <!-- Rekap Stok Keluar -->
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-500">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-semibold text-slate-800">📤 Rekap Stok Keluar</h3>
+            <p class="text-xs text-slate-500 mt-1">Total: <span id="repKeluarTotal" class="font-bold text-red-600">0</span> qty dari <span id="repKeluarCount">0</span> transaksi</p>
+          </div>
+          <button class="btn btn-danger" onclick="cetakSuratJalan('Keluar')">🖨 Cetak Surat Jalan</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>No</th><th>ID Trx</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Keterangan</th><th>User</th></tr></thead>
+          <tbody id="repKeluarBody"></tbody>
+        </table></div>
       </div>
     </section>
 
@@ -285,6 +330,13 @@
           </div>
           <div><label class="text-xs font-medium text-slate-600">Min Stok Global</label><input id="setMinStok" type="number" min="0" class="input"></div>
           <div><label class="text-xs font-medium text-slate-600">Nama Perusahaan</label><input id="setNama" class="input"></div>
+          <div><label class="text-xs font-medium text-slate-600">Alamat Perusahaan</label><input id="setAlamat" class="input" placeholder="Untuk header surat jalan"></div>
+          <div><label class="text-xs font-medium text-slate-600">Telepon Perusahaan</label><input id="setTelp" class="input"></div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">URL Logo</label>
+            <input id="setLogo" class="input" placeholder="https://... (opsional, untuk header surat jalan)">
+            <p class="text-xs text-slate-500 mt-1">Tip: upload logo ke Drive → Share "Anyone with link" → copy link langsung gambar (gunakan format <code>https://drive.google.com/uc?id=FILE_ID</code>)</p>
+          </div>
           <div class="flex flex-wrap gap-2 pt-2">
             <button type="submit" class="btn btn-primary">💾 Simpan</button>
             <button type="button" class="btn btn-success" onclick="manualBackup()">📦 Backup Manual</button>
@@ -745,9 +797,26 @@ async function loadLaporan(){
       </tr>`).join('') || `<tr><td colspan="4" class="text-center text-slate-400 py-6">-</td></tr>`;
     const masuk  = STATE.trx.filter(t => t.Tipe==='Masuk');
     const keluar = STATE.trx.filter(t => t.Tipe==='Keluar');
-    document.getElementById('repTrxBody').innerHTML = `
-      <tr><td><span class="badge badge-green">Masuk</span></td><td>${masuk.length}</td><td>${fmtNum(masuk.reduce((s,t)=>s+Number(t.Qty||0),0))}</td></tr>
-      <tr><td><span class="badge badge-red">Keluar</span></td><td>${keluar.length}</td><td>${fmtNum(keluar.reduce((s,t)=>s+Number(t.Qty||0),0))}</td></tr>`;
+
+    // Rekap Masuk
+    document.getElementById('repMasukCount').textContent = masuk.length;
+    document.getElementById('repMasukTotal').textContent = fmtNum(masuk.reduce((s,t)=>s+Number(t.Qty||0),0));
+    document.getElementById('repMasukBody').innerHTML = masuk.length ? masuk.map((t,i) => `<tr>
+      <td>${i+1}</td><td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
+      <td>${fmtDate(t.Tanggal)}</td><td>${escapeHtml(t.Nama_Barang)}</td>
+      <td class="font-medium">${fmtNum(t.Qty)}</td><td>${escapeHtml(t.Keterangan||'-')}</td>
+      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td></tr>`).join('')
+      : `<tr><td colspan="7" class="text-center text-slate-400 py-4">Belum ada transaksi masuk</td></tr>`;
+
+    // Rekap Keluar
+    document.getElementById('repKeluarCount').textContent = keluar.length;
+    document.getElementById('repKeluarTotal').textContent = fmtNum(keluar.reduce((s,t)=>s+Number(t.Qty||0),0));
+    document.getElementById('repKeluarBody').innerHTML = keluar.length ? keluar.map((t,i) => `<tr>
+      <td>${i+1}</td><td class="font-mono text-xs">${escapeHtml(t.ID_Transaksi)}</td>
+      <td>${fmtDate(t.Tanggal)}</td><td>${escapeHtml(t.Nama_Barang)}</td>
+      <td class="font-medium">${fmtNum(t.Qty)}</td><td>${escapeHtml(t.Keterangan||'-')}</td>
+      <td class="text-xs">${escapeHtml(t.User_Email||'-')}</td></tr>`).join('')
+      : `<tr><td colspan="7" class="text-center text-slate-400 py-4">Belum ada transaksi keluar</td></tr>`;
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
@@ -932,3 +1001,183 @@ async function manualAlert(){
 </script>
 </body>
 </html>
+
+
+<!-- FUNGSI CETAK SURAT JALAN & REKAP (ditambahkan sebelum </body>) -->
+<script>
+// =============== CETAK SURAT JALAN / TANDA TERIMA ===============
+function cetakSuratJalan(tipe){
+  const items = STATE.trx.filter(t => t.Tipe === tipe);
+  if (!items.length){ toast('Tidak ada data ' + tipe + ' untuk dicetak.', 'error'); return; }
+
+  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT Contoh Sejahtera';
+  const judul = tipe === 'Keluar' ? 'SURAT JALAN' : 'SURAT TANDA TERIMA BARANG';
+  const totalQty = items.reduce((s,t) => s + Number(t.Qty||0), 0);
+  const today = fmtDate(new Date());
+
+  let tableRows = '';
+  items.forEach((t, i) => {
+    tableRows += `<tr>
+      <td style="border:1px solid #333;padding:6px;text-align:center">${i+1}</td>
+      <td style="border:1px solid #333;padding:6px">${escapeHtml(t.ID_Transaksi)}</td>
+      <td style="border:1px solid #333;padding:6px;text-align:center">${fmtDate(t.Tanggal)}</td>
+      <td style="border:1px solid #333;padding:6px">${escapeHtml(t.Nama_Barang)}</td>
+      <td style="border:1px solid #333;padding:6px;text-align:center;font-weight:bold">${fmtNum(t.Qty)}</td>
+      <td style="border:1px solid #333;padding:6px">${escapeHtml(t.Keterangan||'-')}</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${judul}</title>
+    <style>
+      @page { size:A4; margin:15mm; }
+      body { font-family:Arial,sans-serif; font-size:12px; color:#111; margin:0; padding:20px; }
+      .header { display:flex; align-items:center; gap:16px; border-bottom:3px solid #111; padding-bottom:12px; margin-bottom:16px; }
+      .header img { max-height:60px; max-width:120px; }
+      .header .info h1 { margin:0; font-size:16px; }
+      .header .info p { margin:2px 0; font-size:11px; color:#444; }
+      .title { text-align:center; font-size:18px; font-weight:bold; margin:20px 0 6px; text-decoration:underline; }
+      .subtitle { text-align:center; font-size:12px; color:#555; margin-bottom:20px; }
+      table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+      th { background:#f3f4f6; border:1px solid #333; padding:8px; font-size:11px; text-transform:uppercase; }
+      .total-row td { font-weight:bold; background:#f9fafb; }
+      .signatures { display:flex; justify-content:space-between; margin-top:50px; }
+      .sig-box { text-align:center; width:200px; }
+      .sig-box .line { border-top:1px solid #333; margin-top:60px; padding-top:4px; }
+      .footer { text-align:center; margin-top:30px; font-size:10px; color:#999; }
+      @media print { body { padding:0; } }
+    </style>
+  </head><body>
+    <div class="header">
+      <div class="info">
+        <h1>${escapeHtml(namaPerusahaan)}</h1>
+        <p>Tanggal Cetak: ${today}</p>
+      </div>
+    </div>
+
+    <div class="title">${judul}</div>
+    <div class="subtitle">No. Dokumen: ${tipe.toUpperCase()}-${new Date().getTime().toString(36).toUpperCase()} | Tanggal: ${today}</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:40px">No</th>
+          <th>ID Transaksi</th>
+          <th style="width:90px">Tanggal</th>
+          <th>Nama Barang</th>
+          <th style="width:70px">Qty</th>
+          <th>Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+        <tr class="total-row">
+          <td colspan="4" style="border:1px solid #333;padding:8px;text-align:right">TOTAL QTY:</td>
+          <td style="border:1px solid #333;padding:8px;text-align:center;font-size:14px">${fmtNum(totalQty)}</td>
+          <td style="border:1px solid #333;padding:8px">${items.length} transaksi</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="signatures">
+      <div class="sig-box">
+        <div>Yang Menyerahkan</div>
+        <div class="line">(______________________)</div>
+      </div>
+      <div class="sig-box">
+        <div>${tipe === 'Keluar' ? 'Pengemudi / Kurir' : 'Petugas Gudang'}</div>
+        <div class="line">(______________________)</div>
+      </div>
+      <div class="sig-box">
+        <div>Yang Menerima</div>
+        <div class="line">(______________________)</div>
+      </div>
+    </div>
+
+    <div class="footer">Dicetak dari Aplikasi Stok Barang — ${today}</div>
+
+    <script>window.onload = function(){ window.print(); }<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else toast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error');
+}
+
+function cetakRekapStok(){
+  const items = STATE.master.filter(x => x.Status === 'Active');
+  if (!items.length){ toast('Tidak ada data stok untuk dicetak.', 'error'); return; }
+
+  const namaPerusahaan = document.getElementById('setNama')?.value || 'PT Contoh Sejahtera';
+  const today = fmtDate(new Date());
+  let totalNilai = 0;
+
+  let tableRows = '';
+  items.forEach((x, i) => {
+    const nilai = (Number(x.Stok_Akhir)||0) * (Number(x.Harga_Beli)||0);
+    totalNilai += nilai;
+    tableRows += `<tr>
+      <td style="border:1px solid #333;padding:6px;text-align:center">${i+1}</td>
+      <td style="border:1px solid #333;padding:6px;font-family:monospace;font-size:10px">${escapeHtml(x.ID_Barang)}</td>
+      <td style="border:1px solid #333;padding:6px">${escapeHtml(x.Nama_Barang)}</td>
+      <td style="border:1px solid #333;padding:6px">${escapeHtml(x.Kategori||'-')}</td>
+      <td style="border:1px solid #333;padding:6px;text-align:center;font-weight:bold">${fmtNum(x.Stok_Akhir)} ${escapeHtml(x.Satuan||'')}</td>
+      <td style="border:1px solid #333;padding:6px;text-align:right">Rp ${fmtNum(nilai)}</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>REKAP STOK BARANG</title>
+    <style>
+      @page { size:A4; margin:15mm; }
+      body { font-family:Arial,sans-serif; font-size:12px; color:#111; margin:0; padding:20px; }
+      .header { border-bottom:3px solid #111; padding-bottom:12px; margin-bottom:16px; }
+      .header h1 { margin:0; font-size:16px; }
+      .header p { margin:2px 0; font-size:11px; color:#444; }
+      .title { text-align:center; font-size:18px; font-weight:bold; margin:20px 0 6px; text-decoration:underline; }
+      .subtitle { text-align:center; font-size:12px; color:#555; margin-bottom:20px; }
+      table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+      th { background:#f3f4f6; border:1px solid #333; padding:8px; font-size:11px; text-transform:uppercase; }
+      .total-row td { font-weight:bold; background:#f9fafb; }
+      .footer { text-align:center; margin-top:30px; font-size:10px; color:#999; }
+      @media print { body { padding:0; } }
+    </style>
+  </head><body>
+    <div class="header">
+      <h1>${escapeHtml(namaPerusahaan)}</h1>
+      <p>Tanggal Cetak: ${today}</p>
+    </div>
+
+    <div class="title">REKAP STOK BARANG</div>
+    <div class="subtitle">Per tanggal ${today} | Total ${items.length} item aktif</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:35px">No</th>
+          <th>ID Barang</th>
+          <th>Nama Barang</th>
+          <th>Kategori</th>
+          <th style="width:90px">Stok</th>
+          <th style="width:110px">Nilai</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+        <tr class="total-row">
+          <td colspan="5" style="border:1px solid #333;padding:8px;text-align:right">TOTAL NILAI INVENTORI:</td>
+          <td style="border:1px solid #333;padding:8px;text-align:right;font-size:13px">Rp ${fmtNum(totalNilai)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">Dicetak dari Aplikasi Stok Barang — ${today}</div>
+
+    <script>window.onload = function(){ window.print(); }<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else toast('Popup diblokir browser. Izinkan popup untuk mencetak.', 'error');
+}
+</script>

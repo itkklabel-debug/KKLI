@@ -47,7 +47,10 @@ const DEFAULT_SETTINGS = {
   jamAlert          : '08:00',
   minStokGlobal     : 5,
   hariSebelumExpired: 7,
-  namaPerusahaan    : 'PT Contoh Sejahtera'
+  namaPerusahaan    : 'PT Contoh Sejahtera',
+  alamatPerusahaan  : 'Jl. Contoh No. 123, Jakarta',
+  teleponPerusahaan : '021-1234567',
+  logoUrl           : ''           // URL gambar logo (Drive/external)
 };
 
 // =============================================================================
@@ -459,17 +462,21 @@ function getDashboardData(){
     items.forEach(r => {
       const stok = Number(r[6]) || 0;
       const min  = Number(r[10]) || 0;
+      // Konversi Date ke ISO string supaya aman dikirim via google.script.run
+      const waktuStr = (r[14] instanceof Date && !isNaN(r[14])) ? r[14].toISOString() : (r[14] ? String(r[14]) : '');
       if (stok <= min){
         hampirHabis++;
-        stokRendah.push({ id:r[0], nama:r[1], kategori:r[2], stok:stok, min:min, satuan:r[7] });
-        alertList.push({ tipe:'Stok Menipis', pesan:`${r[1]} stok ${stok} ${r[7]} (min ${min})`, waktu:r[14] });
+        stokRendah.push({ id:String(r[0]||''), nama:String(r[1]||''), kategori:String(r[2]||''), stok:stok, min:min, satuan:String(r[7]||'') });
+        alertList.push({ tipe:'Stok Menipis', pesan:`${r[1]} stok ${stok} ${r[7]} (min ${min})`, waktu:waktuStr });
       }
       if (r[11]){
         const exp = new Date(r[11]);
-        const diff = Math.floor((exp - today)/(1000*60*60*24));
-        if (diff <= 7){
-          expired++;
-          alertList.push({ tipe:'Expired', pesan:`${r[1]} expired pada ${formatDate_(exp)} (${diff} hari)`, waktu:r[14] });
+        if (!isNaN(exp)){
+          const diff = Math.floor((exp - today)/(1000*60*60*24));
+          if (diff <= 7){
+            expired++;
+            alertList.push({ tipe:'Expired', pesan:`${r[1]} expired pada ${formatDate_(exp)} (${diff} hari)`, waktu:waktuStr });
+          }
         }
       }
     });
