@@ -65,13 +65,13 @@
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
-
+ 
 <!-- LOADING -->
 <div id="loading" class="loading-overlay"><div class="spinner"></div></div>
-
+ 
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
-
+ 
 <!-- ====================== LOGIN SCREEN ====================== -->
 <div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 50%,#3b82f6 100%);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="max-width:420px;width:100%;background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 25px 50px rgba(0,0,0,.25)">
@@ -80,7 +80,7 @@
       <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin:0">Aplikasi Stok Barang</h1>
       <p style="color:#64748b;font-size:14px;margin:4px 0 0">Silakan masuk untuk melanjutkan</p>
     </div>
-
+ 
     <form id="formLogin" onsubmit="doLogin(event)">
       <div style="margin-bottom:14px">
         <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Email</label>
@@ -93,7 +93,7 @@
       <div id="loginError" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px"></div>
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;font-size:15px">Masuk</button>
     </form>
-
+ 
     <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:12px;color:#64748b;text-align:center;line-height:1.6">
       <b>Login pertama kali?</b><br>
       Pakai akun default Admin:<br>
@@ -103,11 +103,11 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- ====================== MAIN APP (hidden until logged in) ====================== -->
 <div id="appShell" style="display:none">
 <div class="flex">
-
+ 
   <!-- SIDEBAR -->
   <aside id="sidebar" class="w-60 bg-slate-900 text-white min-h-screen p-4 flex-shrink-0 relative">
     <div class="flex items-center gap-2 mb-6 px-2">
@@ -136,14 +136,14 @@
       </div>
     </div>
   </aside>
-
+ 
   <!-- MAIN -->
   <main id="main" class="flex-1 p-6 md:p-8 ml-0">
     <div class="flex items-center justify-between mb-4 md:hidden">
       <button class="btn btn-secondary" onclick="document.getElementById('sidebar').classList.toggle('open')">☰ Menu</button>
       <div class="text-sm text-slate-600" id="userEmailMobile">-</div>
     </div>
-
+ 
     <!-- VIEW: DASHBOARD -->
     <section id="view-dashboard" class="view active">
       <h1 class="text-2xl font-bold text-slate-800 mb-1">Dashboard</h1>
@@ -168,7 +168,7 @@
         </div>
       </div>
     </section>
-
+ 
     <!-- VIEW: MASTER -->
     <section id="view-master" class="view">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -186,7 +186,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: TRANSAKSI -->
     <section id="view-transaksi" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Transaksi Stok</h1>
@@ -212,35 +212,80 @@
             <button class="btn btn-secondary" onclick="loadTrx()">Filter</button>
           </div>
           <div class="overflow-x-auto"><table>
-            <thead><tr><th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th><th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th></tr></thead>
-            <tbody id="trxBody"><tr><td colspan="8" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
+            <thead><tr><th>ID</th><th>Tanggal</th><th>Tipe</th><th>Barang</th><th>Qty</th><th>Stok Akhir</th><th>User</th><th>Bukti</th><th>Aksi</th></tr></thead>
+            <tbody id="trxBody"><tr><td colspan="9" class="text-center text-slate-400 py-6">Memuat...</td></tr></tbody>
           </table></div>
         </div>
       </div>
     </section>
-
+ 
     <!-- VIEW: LAPORAN -->
     <section id="view-laporan" class="view">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h1 class="text-2xl font-bold text-slate-800">Laporan</h1>
         <div class="flex gap-2">
-          <button class="btn btn-secondary" onclick="exportCSV('master')">⬇ Export CSV Stok</button>
-          <button class="btn btn-secondary" onclick="exportCSV('trx')">⬇ Export CSV Transaksi</button>
-          <button class="btn btn-success" onclick="window.print()">🖨 Print PDF</button>
+          <button class="btn btn-secondary" onclick="exportCSV('master')">⬇ CSV Stok</button>
+          <button class="btn btn-secondary" onclick="exportCSV('trx')">⬇ CSV Transaksi</button>
         </div>
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="bg-white rounded-xl shadow-sm p-5">
-          <h3 class="font-semibold text-slate-800 mb-3">Rekap Stok</h3>
-          <div class="overflow-x-auto"><table><thead><tr><th>ID</th><th>Nama</th><th>Stok Akhir</th><th>Nilai</th></tr></thead><tbody id="repStokBody"></tbody></table></div>
+ 
+      <!-- Filter periode -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+        <div>
+          <label class="text-xs font-medium text-slate-600">Periode Dari</label>
+          <input id="lapFrom" type="date" class="input max-w-[160px]">
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-5">
-          <h3 class="font-semibold text-slate-800 mb-3">Rekap Transaksi</h3>
-          <div class="overflow-x-auto"><table><thead><tr><th>Tipe</th><th>Jumlah Trx</th><th>Total Qty</th></tr></thead><tbody id="repTrxBody"></tbody></table></div>
+        <div>
+          <label class="text-xs font-medium text-slate-600">Sampai</label>
+          <input id="lapTo" type="date" class="input max-w-[160px]">
         </div>
+        <button class="btn btn-primary" onclick="loadLaporan()">🔄 Filter</button>
+        <span class="text-xs text-slate-500">Kosongkan = semua periode</span>
+      </div>
+ 
+      <!-- Rekap Stok Sekarang -->
+      <div class="bg-white rounded-xl shadow-sm p-5 mb-4">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 class="font-semibold text-slate-800">📦 Rekap Stok Saat Ini</h3>
+          <button class="btn btn-secondary" onclick="cetakRekapStok()">🖨 Cetak Rekap Stok</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>ID</th><th>Nama</th><th>Kategori</th><th>Stok Akhir</th><th>Satuan</th><th>Nilai</th></tr></thead>
+          <tbody id="repStokBody"></tbody>
+        </table></div>
+      </div>
+ 
+      <!-- Rekap Stok Masuk -->
+      <div class="bg-white rounded-xl shadow-sm p-5 mb-4 border-l-4 border-green-500">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-semibold text-slate-800">📥 Rekap Stok Masuk</h3>
+            <p class="text-xs text-slate-500 mt-1">Total: <span id="repMasukTotal" class="font-bold text-green-600">0</span> qty dari <span id="repMasukCount">0</span> transaksi</p>
+          </div>
+          <button class="btn btn-success" onclick="cetakSuratJalan('Masuk')">🖨 Cetak Surat Tanda Terima</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>No</th><th>ID Trx</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Keterangan</th><th>User</th></tr></thead>
+          <tbody id="repMasukBody"></tbody>
+        </table></div>
+      </div>
+ 
+      <!-- Rekap Stok Keluar -->
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-500">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-semibold text-slate-800">📤 Rekap Stok Keluar</h3>
+            <p class="text-xs text-slate-500 mt-1">Total: <span id="repKeluarTotal" class="font-bold text-red-600">0</span> qty dari <span id="repKeluarCount">0</span> transaksi</p>
+          </div>
+          <button class="btn btn-danger" onclick="cetakSuratJalan('Keluar')">🖨 Cetak Surat Jalan</button>
+        </div>
+        <div class="overflow-x-auto"><table>
+          <thead><tr><th>No</th><th>ID Trx</th><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Keterangan</th><th>User</th></tr></thead>
+          <tbody id="repKeluarBody"></tbody>
+        </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: USER -->
     <section id="view-users" class="view">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -254,7 +299,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: LOG -->
     <section id="view-log" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Log &amp; Validasi</h1>
@@ -272,7 +317,7 @@
         </table></div>
       </div>
     </section>
-
+ 
     <!-- VIEW: SETTINGS -->
     <section id="view-settings" class="view">
       <h1 class="text-2xl font-bold text-slate-800 mb-4">Pengaturan</h1>
@@ -285,6 +330,13 @@
           </div>
           <div><label class="text-xs font-medium text-slate-600">Min Stok Global</label><input id="setMinStok" type="number" min="0" class="input"></div>
           <div><label class="text-xs font-medium text-slate-600">Nama Perusahaan</label><input id="setNama" class="input"></div>
+          <div><label class="text-xs font-medium text-slate-600">Alamat Perusahaan</label><input id="setAlamat" class="input" placeholder="Untuk header surat jalan"></div>
+          <div><label class="text-xs font-medium text-slate-600">Telepon Perusahaan</label><input id="setTelp" class="input"></div>
+          <div>
+            <label class="text-xs font-medium text-slate-600">URL Logo</label>
+            <input id="setLogo" class="input" placeholder="https://... (opsional, untuk header surat jalan)">
+            <p class="text-xs text-slate-500 mt-1">Tip: upload logo ke Drive → Share "Anyone with link" → copy link langsung gambar (gunakan format <code>https://drive.google.com/uc?id=FILE_ID</code>)</p>
+          </div>
           <div class="flex flex-wrap gap-2 pt-2">
             <button type="submit" class="btn btn-primary">💾 Simpan</button>
             <button type="button" class="btn btn-success" onclick="manualBackup()">📦 Backup Manual</button>
@@ -296,7 +348,7 @@
   </main>
 </div>
 </div>
-
+ 
 <!-- MODAL: BARANG -->
 <div id="modalBarang" class="modal-overlay">
   <div class="modal p-6">
@@ -324,7 +376,7 @@
     </form>
   </div>
 </div>
-
+ 
 <!-- MODAL: USER -->
 <div id="modalUser" class="modal-overlay">
   <div class="modal p-6">
@@ -348,7 +400,7 @@
     </form>
   </div>
 </div>
-
+ 
 <script>
 // =============== STATE ===============
 let STATE = {
@@ -357,7 +409,7 @@ let STATE = {
   master: [], trx: [], users: []
 };
 const TOKEN_KEY = 'stokBarang_authToken';
-
+ 
 // =============== UTIL ===============
 function showLoading(b){ document.getElementById('loading').classList.toggle('show', b); }
 function toast(msg, type){
@@ -379,7 +431,7 @@ function fmtDate(d, t){
 }
 function fmtNum(n){ return Number(n||0).toLocaleString('id-ID'); }
 function isoDate(d){ const x = new Date(d); return x.toISOString().slice(0,10); }
-
+ 
 // Wrapper google.script.run dengan defensif terhadap null + auto inject token
 function gas(fn, ...args){
   return new Promise((res, rej) => {
@@ -410,7 +462,7 @@ async function gasAuth(fn, ...args){
   args.push({ token: STATE.token || '' });
   return safeGas(fn, ...args);
 }
-
+ 
 function fileToBase64(file){
   return new Promise((res, rej) => {
     if (!file) return res(null);
@@ -422,7 +474,7 @@ function fileToBase64(file){
 }
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-
+ 
 // =============== AUTH ===============
 async function doLogin(e){
   e.preventDefault();
@@ -443,7 +495,7 @@ async function doLogin(e){
     errBox.textContent = '⚠ ' + err.message;
   } finally { showLoading(false); }
 }
-
+ 
 async function doLogout(){
   if (!confirm('Logout sekarang?')) return;
   showLoading(true);
@@ -454,7 +506,7 @@ async function doLogout(){
   showLoading(false);
   location.reload();
 }
-
+ 
 function enterApp(){
   // Tampilkan info user
   document.getElementById('userName').textContent  = STATE.user.nama  || '-';
@@ -463,20 +515,20 @@ function enterApp(){
   const rb = document.getElementById('userRoleBadge');
   rb.textContent = STATE.user.role || 'Guest';
   rb.className = 'badge ' + (STATE.user.role === 'Admin' ? 'badge-blue' : (STATE.user.role === 'Staff' ? 'badge-green' : 'badge-gray'));
-
+ 
   // Sembunyikan menu admin-only jika bukan admin
   const adminOnly = STATE.user.role === 'Admin';
   document.querySelectorAll('.admin-only').forEach(x => x.style.display = adminOnly ? '' : 'none');
-
+ 
   // Pindah dari login screen ke main app
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = '';
-
+ 
   // Set tanggal default & load dashboard
   document.getElementById('trxTanggal').value = isoDate(new Date());
   loadDashboard();
 }
-
+ 
 async function changePasswordPrompt(){
   const lama = prompt('Password lama:');
   if (!lama) return;
@@ -487,7 +539,7 @@ async function changePasswordPrompt(){
   showLoading(false);
   toast(r.message, r.ok ? 'success' : 'error');
 }
-
+ 
 // =============== NAV ===============
 document.querySelectorAll('.sidebar-link[data-view]').forEach(el => {
   el.addEventListener('click', () => {
@@ -500,7 +552,7 @@ document.querySelectorAll('.sidebar-link[data-view]').forEach(el => {
     routeView(v);
   });
 });
-
+ 
 function routeView(v){
   if (v === 'dashboard') loadDashboard();
   else if (v === 'master') loadMaster();
@@ -510,7 +562,7 @@ function routeView(v){
   else if (v === 'log')      loadLog();
   else if (v === 'settings') loadSettings();
 }
-
+ 
 // =============== INIT (auto-login dari token) ===============
 window.addEventListener('DOMContentLoaded', async () => {
   const cachedToken = sessionStorage.getItem(TOKEN_KEY);
@@ -528,7 +580,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(_){ sessionStorage.removeItem(TOKEN_KEY); }
   finally { showLoading(false); }
 });
-
+ 
 // =============== DASHBOARD ===============
 async function loadDashboard(){
   showLoading(true);
@@ -552,7 +604,7 @@ async function loadDashboard(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== MASTER BARANG ===============
 async function loadMaster(){
   showLoading(true);
@@ -568,7 +620,7 @@ async function loadMaster(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 function renderMaster(){
   const q = document.getElementById('searchBarang').value.toLowerCase();
   const k = document.getElementById('filterKategori').value;
@@ -597,7 +649,7 @@ function renderMaster(){
       </td></tr>`;
   }).join('') : `<tr><td colspan="9" class="text-center text-slate-400 py-6">Tidak ada barang</td></tr>`;
 }
-
+ 
 function openBarangModal(){
   document.getElementById('modalBarangTitle').textContent = 'Tambah Barang';
   document.getElementById('formBarang').reset();
@@ -622,7 +674,7 @@ function editBarang(id){
   document.getElementById('brgExpired').value    = x.Expired_Date ? isoDate(x.Expired_Date) : '';
   openModal('modalBarang');
 }
-
+ 
 async function submitBarang(e){
   e.preventDefault();
   showLoading(true);
@@ -652,7 +704,7 @@ async function submitBarang(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function deleteBarang(id){
   if (!confirm('Yakin nonaktifkan barang ' + id + '?')) return;
   showLoading(true);
@@ -664,7 +716,7 @@ async function deleteBarang(id){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== TRANSAKSI ===============
 function fillBarangSelect(){
   const sel = document.getElementById('trxBarang');
@@ -673,7 +725,7 @@ function fillBarangSelect(){
       .map(x => `<option value="${escapeHtml(x.ID_Barang)}">${escapeHtml(x.Nama_Barang)} (stok: ${x.Stok_Akhir} ${escapeHtml(x.Satuan||'')})</option>`)
       .join('');
 }
-
+ 
 async function loadTrx(){
   showLoading(true);
   try {
@@ -699,7 +751,7 @@ async function loadTrx(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function submitTrx(e){
   e.preventDefault();
   showLoading(true);
@@ -727,7 +779,7 @@ async function submitTrx(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== LAPORAN ===============
 async function loadLaporan(){
   showLoading(true);
@@ -751,7 +803,7 @@ async function loadLaporan(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 function exportCSV(kind){
   let rows = [], filename = '';
   if (kind === 'master'){
@@ -769,7 +821,7 @@ function exportCSV(kind){
   a.href = URL.createObjectURL(blob); a.download = filename; a.click();
   toast('CSV diunduh', 'success');
 }
-
+ 
 // =============== USER MANAGEMENT ===============
 async function loadUsers(){
   showLoading(true);
@@ -790,7 +842,7 @@ async function loadUsers(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 function openUserModal(){
   document.getElementById('modalUserTitle').textContent = 'Tambah User';
   document.getElementById('formUser').reset();
@@ -812,7 +864,7 @@ function editUser(email){
   document.getElementById('usrPasswordWrap').style.display = 'none'; // password tidak diedit di sini
   openModal('modalUser');
 }
-
+ 
 async function submitUser(e){
   e.preventDefault();
   showLoading(true);
@@ -833,7 +885,7 @@ async function submitUser(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function toggleUser(email){
   const u = STATE.users.find(x => x.Email === email); if (!u) return;
   const newStat = u.Status === 'Active' ? 'Inactive' : 'Active';
@@ -847,7 +899,7 @@ async function toggleUser(email){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== LOG ===============
 async function loadLog(){
   showLoading(true);
@@ -869,7 +921,7 @@ async function loadLog(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function clearOldLogs(){
   if (!confirm('Hapus semua log yang lebih dari 30 hari?')) return;
   showLoading(true);
@@ -881,7 +933,7 @@ async function clearOldLogs(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 // =============== SETTINGS ===============
 async function loadSettings(){
   showLoading(true);
@@ -897,7 +949,7 @@ async function loadSettings(){
   } catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function saveSettings(e){
   e.preventDefault();
   showLoading(true);
@@ -915,14 +967,14 @@ async function saveSettings(e){
   } catch(err){ toast(err.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function manualBackup(){
   showLoading(true);
   try { const r = await safeGas('backupData'); if (!r.ok) throw new Error(r.message); toast('Backup OK: ' + r.file, 'success'); }
   catch(e){ toast(e.message, 'error'); }
   finally { showLoading(false); }
 }
-
+ 
 async function manualAlert(){
   showLoading(true);
   try { const r = await safeGas('checkAndSendAlerts'); if (!r.ok) throw new Error(r.message); toast(r.message, 'success'); }
