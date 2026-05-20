@@ -54,13 +54,47 @@ const DEFAULT_SETTINGS = {
 //  ENTRY POINT WEB APP
 // =============================================================================
 function doGet(e) {
-  initSetup(); // pastikan struktur ada
-  const tpl = HtmlService.createTemplateFromFile('Index');
-  tpl.userEmail = Session.getActiveUser().getEmail() || '';
-  return tpl.evaluate()
-    .setTitle('Aplikasi Stok Barang')
-    .addMetaTag('viewport','width=device-width, initial-scale=1.0')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  try { initSetup(); } catch(_){} // pastikan struktur ada (jangan blokir UI)
+
+  // Coba cari file HTML "Index" (juga toleran terhadap "index" / "INDEX")
+  const candidates = ['Index', 'index', 'INDEX'];
+  for (let i=0; i<candidates.length; i++){
+    try {
+      const tpl = HtmlService.createTemplateFromFile(candidates[i]);
+      tpl.userEmail = Session.getActiveUser().getEmail() || '';
+      return tpl.evaluate()
+        .setTitle('Aplikasi Stok Barang')
+        .addMetaTag('viewport','width=device-width, initial-scale=1.0')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    } catch(_){ /* coba kandidat berikutnya */ }
+  }
+
+  // File HTML belum ada → tampilkan halaman instruksi yang jelas
+  return HtmlService.createHtmlOutput(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<title>Setup Belum Lengkap</title>' +
+    '<style>body{font-family:system-ui,Segoe UI,Arial;background:#f1f5f9;margin:0;padding:40px 20px;color:#0f172a}' +
+    '.card{max-width:640px;margin:0 auto;background:#fff;padding:32px;border-radius:14px;' +
+    'box-shadow:0 8px 30px rgba(0,0,0,.08)}h1{margin:0 0 6px;font-size:22px}' +
+    'h2{font-size:15px;color:#475569;margin:0 0 22px;font-weight:500}' +
+    'ol{padding-left:20px;line-height:1.7}code{background:#f1f5f9;padding:2px 8px;border-radius:6px;' +
+    'font-family:ui-monospace,monospace;font-size:13px}.tag{display:inline-block;background:#fef3c7;' +
+    'color:#92400e;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;margin-bottom:14px}' +
+    '.hint{background:#eff6ff;border-left:4px solid #2563eb;padding:12px 16px;margin-top:18px;' +
+    'border-radius:8px;font-size:14px;color:#1e40af}</style></head><body>' +
+    '<div class="card"><span class="tag">Setup belum lengkap</span>' +
+    '<h1>File HTML "Index" belum dibuat</h1>' +
+    '<h2>Aplikasi Stok Barang membutuhkan satu file HTML di proyek Apps Script ini.</h2>' +
+    '<ol>' +
+      '<li>Di editor Apps Script (kiri), klik tombol <b>+</b> di samping "Files" → pilih <b>HTML</b>.</li>' +
+      '<li>Beri nama file persis: <code>Index</code> (huruf I besar, tanpa ekstensi).</li>' +
+      '<li>Hapus isi default-nya, lalu tempel seluruh isi <code>Index.html</code> dari repository.</li>' +
+      '<li>Simpan (<code>Ctrl/Cmd + S</code>), lalu <b>Deploy</b> ulang web app (atau refresh halaman ini jika sedang dites lewat <i>Test deployment</i>).</li>' +
+    '</ol>' +
+    '<div class="hint"><b>Tips:</b> Apps Script tidak otomatis baca file dari Drive/GitHub — semua file (.gs &amp; .html) harus ditempel manual ke proyek Apps Script ini.</div>' +
+    '</div></body></html>'
+  ).setTitle('Setup Aplikasi Stok Barang');
 }
 
 function include(filename){
