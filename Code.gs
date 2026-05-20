@@ -1080,9 +1080,25 @@ function createTimeDrivenTriggers(){
 // =============================================================================
 //  HELPER FUNCTIONS
 // =============================================================================
+/**
+ * Konversi 1 nilai sel ke bentuk yang aman dikirim lewat google.script.run.
+ * - Date  -> ISO string ('' jika invalid)
+ * - null/undefined -> ''
+ * - lainnya -> apa adanya (string/number/boolean)
+ */
+function sanitizeCell_(v){
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date){
+    const t = v.getTime();
+    if (isNaN(t)) return '';
+    return v.toISOString();
+  }
+  return v;
+}
+
 function rowToObj_(headers, row){
   const o = {};
-  headers.forEach((h,i) => { o[h] = row[i]; });
+  headers.forEach((h,i) => { o[h] = sanitizeCell_(row ? row[i] : ''); });
   return o;
 }
 
