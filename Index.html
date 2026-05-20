@@ -511,8 +511,34 @@ function fmtNum(n){ return Number(n||0).toLocaleString('id-ID'); }
 function isoDate(d){ const x = new Date(d); return x.toISOString().slice(0,10); }
 function gas(fn, ...args){
   return new Promise((res, rej) => {
-    google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args);
+    if (typeof google === 'undefined' || !google.script || !google.script.run){
+      return rej(new Error('google.script.run tidak tersedia. Halaman ini harus dibuka via web app Apps Script, bukan langsung dari Drive/GitHub.'));
+    }
+    google.script.run
+      .withSuccessHandler(r => {
+        // Apps Script kadang mengirim null ke success handler bila fungsi
+        // backend selesai tanpa return (atau return value tidak bisa
+        // diserialisasi). Konversi jadi error yang informatif.
+        if (r === null || r === undefined){
+          rej(new Error(`Backend "${fn}()" tidak mengembalikan response. Pastikan Code.gs sudah disimpan & web app di-deploy ulang (New deployment).`));
+        } else {
+          res(r);
+        }
+      })
+      .withFailureHandler(err => rej(err || new Error('Server error tidak diketahui di "' + fn + '()"')))
+      [fn](...args);
   });
+}
+
+// Wrapper aman: pasti dapat object {ok, message, ...}
+async function safeGas(fn, ...args){
+  try {
+    const r = await safeGas(fn, ...args);
+    if (!r || typeof r !== 'object') return { ok:false, message:'Response tidak valid dari ' + fn };
+    return r;
+  } catch(e){
+    return { ok:false, message: (e && e.message) ? e.message : String(e) };
+  }
 }
 function fileToBase64(file){
   return new Promise((res, rej) => {
@@ -554,7 +580,7 @@ function routeView(v){
 window.addEventListener('DOMContentLoaded', async () => {
   showLoading(true);
   try {
-    const u = await gas('getCurrentUser');
+    const u = await safeGas('getCurrentUser');
     STATE.user = u || STATE.user;
     document.getElementById('userName').textContent  = u.nama  || '(belum terdaftar)';
     document.getElementById('userEmail').textContent = u.email || '-';
@@ -589,7 +615,7 @@ async function showAccessDenied(u){
 
   // Cek apakah belum ada admin aktif → tawarkan self-claim
   try {
-    const w = await gas('whoami');
+    const w = await safeGas('whoami');
     const hasAdmin = (w.registered_users||[]).some(r =>
       String(r.role).trim() === 'Admin' && String(r.status).trim() === 'Active'
     );
@@ -607,7 +633,7 @@ async function claimAdminBtn(){
   if (!nama){ toast('Isi nama lengkap dulu.', 'error'); return; }
   showLoading(true);
   try {
-    const r = await gas('claimAdmin', nama);
+    const r = await safeGas('claimAdmin', nama);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     setTimeout(() => location.reload(), 1200);
@@ -619,7 +645,7 @@ async function claimAdminBtn(){
 async function loadDashboard(){
   showLoading(true);
   try {
-    const r = await gas('getDashboardData');
+    const r = await safeGas('getDashboardData');
     if (!r.ok) throw new Error(r.message);
     document.getElementById('statTotal').textContent = r.totalItem;
     document.getElementById('statLow').textContent   = r.hampirHabis;
@@ -649,7 +675,7 @@ async function loadDashboard(){
 async function loadMaster(){
   showLoading(true);
   try {
-    const r = await gas('getMasterBarang');
+    const r = await safeGas('getMasterBarang');
     if (!r.ok) throw new Error(r.message);
     STATE.master = r.data || [];
     // build kategori options
@@ -741,7 +767,7 @@ async function submitBarang(e){
       fileName:    fileObj ? fileObj.name   : '',
       fileType:    fileObj ? fileObj.type   : ''
     };
-    const r = await gas(id ? 'updateBarang' : 'saveBarang', data);
+    const r = await safeGas(id ? 'updateBarang' : 'saveBarang', data);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     closeModal('modalBarang');
@@ -754,7 +780,7 @@ async function deleteBarang(id){
   if (!confirm('Yakin nonaktifkan barang ' + id + '?')) return;
   showLoading(true);
   try {
-    const r = await gas('deleteBarang', id);
+    const r = await safeGas('deleteBarang', id);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     await loadMaster();
@@ -779,7 +805,7 @@ async function loadTrx(){
       tanggalSampai: document.getElementById('trxTo').value,
       tipe:          document.getElementById('trxFilterTipe').value
     };
-    const r = await gas('getTransaksi', filter);
+    const r = await safeGas('getTransaksi', filter);
     if (!r.ok) throw new Error(r.message);
     STATE.trx = r.data || [];
     const tbody = document.getElementById('trxBody');
@@ -814,7 +840,7 @@ async function submitTrx(e){
       fileName:   fileObj ? fileObj.name   : '',
       fileType:   fileObj ? fileObj.type   : ''
     };
-    const r = await gas('saveTransaksi', data);
+    const r = await safeGas('saveTransaksi', data);
     if (!r.ok) throw new Error(r.message);
     toast(r.message + ' (Stok akhir: ' + r.stokSesudah + ')', 'success');
     document.getElementById('formTrx').reset();
@@ -831,7 +857,7 @@ async function loadLaporan(){
   showLoading(true);
   try {
     if (!STATE.master.length) await loadMaster();
-    const tr = await gas('getTransaksi', {});
+    const tr = await safeGas('getTransaksi', {});
     if (!tr.ok) throw new Error(tr.message);
     STATE.trx = tr.data || [];
 
@@ -875,7 +901,7 @@ function exportCSV(kind){
 async function loadUsers(){
   showLoading(true);
   try {
-    const r = await gas('getUsers');
+    const r = await safeGas('getUsers');
     if (!r.ok) throw new Error(r.message);
     STATE.users = r.data || [];
     document.getElementById('userBody').innerHTML = STATE.users.length ? STATE.users.map(u => `
@@ -924,8 +950,8 @@ async function submitUser(e){
     const role  = document.getElementById('usrRole').value;
     const status= document.getElementById('usrStatus').value;
     let r;
-    if (mode === 'add') r = await gas('saveUser', { email, nama, role, status });
-    else                r = await gas('updateUserRole', email, role, status);
+    if (mode === 'add') r = await safeGas('saveUser', { email, nama, role, status });
+    else                r = await safeGas('updateUserRole', email, role, status);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     closeModal('modalUser');
@@ -940,7 +966,7 @@ async function toggleUser(email){
   if (!confirm(`Ubah status ${email} menjadi ${newStat}?`)) return;
   showLoading(true);
   try {
-    const r = await gas('updateUserRole', email, u.Role, newStat);
+    const r = await safeGas('updateUserRole', email, u.Role, newStat);
     if (!r.ok) throw new Error(r.message);
     toast('Status diubah', 'success');
     await loadUsers();
@@ -957,7 +983,7 @@ async function loadLog(){
       tanggalSampai: document.getElementById('logTo').value,
       userEmail:     document.getElementById('logUser').value
     };
-    const r = await gas('getLogValidasi', filter);
+    const r = await safeGas('getLogValidasi', filter);
     if (!r.ok) throw new Error(r.message);
     document.getElementById('logBody').innerHTML = r.data.length ? r.data.map(l => `
       <tr>
@@ -975,7 +1001,7 @@ async function clearOldLogs(){
   if (!confirm('Hapus semua log yang lebih dari 30 hari?')) return;
   showLoading(true);
   try {
-    const r = await gas('clearOldLogs', 30);
+    const r = await safeGas('clearOldLogs', 30);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
     await loadLog();
@@ -987,7 +1013,7 @@ async function clearOldLogs(){
 async function loadSettings(){
   showLoading(true);
   try {
-    const r = await gas('getSettings');
+    const r = await safeGas('getSettings');
     if (!r.ok) throw new Error(r.message);
     const s = r.data;
     document.getElementById('setEmail').value   = s.emailAlert || '';
@@ -1010,7 +1036,7 @@ async function saveSettings(e){
       minStokGlobal:      Number(document.getElementById('setMinStok').value),
       namaPerusahaan:     document.getElementById('setNama').value.trim()
     };
-    const r = await gas('updateSettings', s);
+    const r = await safeGas('updateSettings', s);
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
   } catch(err){ toast(err.message, 'error'); }
@@ -1020,7 +1046,7 @@ async function saveSettings(e){
 async function manualBackup(){
   showLoading(true);
   try {
-    const r = await gas('backupData');
+    const r = await safeGas('backupData');
     if (!r.ok) throw new Error(r.message);
     toast('Backup OK: ' + r.file, 'success');
   } catch(e){ toast(e.message, 'error'); }
@@ -1030,7 +1056,7 @@ async function manualBackup(){
 async function manualAlert(){
   showLoading(true);
   try {
-    const r = await gas('checkAndSendAlerts');
+    const r = await safeGas('checkAndSendAlerts');
     if (!r.ok) throw new Error(r.message);
     toast(r.message, 'success');
   } catch(e){ toast(e.message, 'error'); }
