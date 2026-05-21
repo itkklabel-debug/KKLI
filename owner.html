@@ -101,7 +101,14 @@
       <!-- Charts -->
       <div class="chart-grid">
         <div class="chart-card">
-          <h4>📈 Grafik Penjualan 7 Hari Terakhir</h4>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h4 style="margin:0;">📈 Grafik Penjualan</h4>
+            <select id="chartPeriod" onchange="loadChartByPeriod()" style="padding:6px 12px;border:2px solid #ecf0f1;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;outline:none;">
+              <option value="today">Hari Ini</option>
+              <option value="7days" selected>7 Hari</option>
+              <option value="30days">30 Hari</option>
+            </select>
+          </div>
           <canvas id="chartSales"></canvas>
         </div>
         <div class="chart-card">
@@ -479,18 +486,24 @@
         })
         .getDashboardSummary();
 
-      // Load chart data
-      google.script.run
-        .withSuccessHandler(function(data) {
-          renderSalesChart(data.perHari);
-          renderPaymentChart(data.perMetode);
-        })
-        .getReportData('7days', 'semua');
+      // Load chart with selected period
+      loadChartByPeriod();
     }
 
-    function renderSalesChart(perHari) {
+    function loadChartByPeriod() {
+      var chartPeriod = document.getElementById('chartPeriod').value;
+      google.script.run
+        .withSuccessHandler(function(data) {
+          renderSalesChart(data.perHari, chartPeriod);
+          renderPaymentChart(data.perMetode);
+        })
+        .getReportData(chartPeriod, 'semua');
+    }
+
+    function renderSalesChart(perHari, period) {
       const labels = Object.keys(perHari);
       const values = Object.values(perHari);
+      var periodLabel = period === 'today' ? 'Hari Ini (per jam)' : period === '7days' ? '7 Hari Terakhir' : '30 Hari Terakhir';
 
       if (salesChart) salesChart.destroy();
       const ctx = document.getElementById('chartSales').getContext('2d');
@@ -499,7 +512,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'Omset',
+            label: 'Omset ' + periodLabel,
             data: values,
             borderColor: '#e74c3c',
             backgroundColor: 'rgba(231,76,60,0.1)',
