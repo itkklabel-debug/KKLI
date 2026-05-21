@@ -332,6 +332,51 @@ function uploadQrisBukti(base64Data, filename, kasir, cabang) {
   }
 }
 
+// === TRANSACTION DETAIL (for reports) ===
+function getTransactionDetail(period, cabang) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('transaksi');
+  const data = sheet.getDataRange().getValues();
+  
+  const now = new Date();
+  let startDate;
+  
+  switch (period) {
+    case 'today':
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      break;
+    case '7days':
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case '30days':
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    default:
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+  
+  const results = [];
+  for (let i = 1; i < data.length; i++) {
+    const waktu = new Date(data[i][0]);
+    if (waktu < startDate) continue;
+    if (cabang && cabang !== 'semua' && data[i][4] !== cabang) continue;
+    
+    results.push({
+      waktu: data[i][0],
+      total: Number(data[i][1]) || 0,
+      metode: data[i][2],
+      kasir: data[i][3],
+      cabang: data[i][4],
+      items: (data[i][5] || '').toString().split(' | Bukti:')[0]  // Remove bukti URL from display
+    });
+  }
+  
+  // Sort newest first
+  results.sort(function(a, b) { return new Date(b.waktu) - new Date(a.waktu); });
+  
+  return results;
+}
+
 // === TRANSACTION MANAGEMENT ===
 function saveTransaction(items, total, metode, kasir, cabang) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
