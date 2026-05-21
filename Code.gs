@@ -278,8 +278,24 @@ function uploadImage(base64Data, filename) {
 // === QRIS BUKTI UPLOAD ===
 function uploadQrisBukti(base64Data, filename, kasir, cabang) {
   try {
-    const decoded = Utilities.base64Decode(base64Data);
-    const blob = Utilities.newBlob(decoded, 'image/jpeg', filename);
+    // Validate base64 data
+    if (!base64Data || base64Data.length < 100) {
+      return { success: false, message: 'Data gambar tidak valid' };
+    }
+    
+    // Remove any data URL prefix if accidentally included
+    let cleanBase64 = base64Data;
+    if (cleanBase64.indexOf('base64,') > -1) {
+      cleanBase64 = cleanBase64.split('base64,')[1];
+    }
+    
+    // Decode base64 to byte array
+    const decoded = Utilities.base64Decode(cleanBase64);
+    
+    // Create blob from byte array
+    const blob = Utilities.newBlob(decoded);
+    blob.setName(filename);
+    blob.setContentType('image/jpeg');
     
     // Create or get QRIS folder
     const folderName = 'DimSum_POS_QRIS_Bukti';
@@ -296,15 +312,13 @@ function uploadQrisBukti(base64Data, filename, kasir, cabang) {
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     const fileUrl = 'https://drive.google.com/uc?id=' + file.getId();
     
-    // Log to transaksi sheet - update last QRIS transaction with bukti URL
+    // Update last QRIS transaction with bukti URL
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('transaksi');
     const data = sheet.getDataRange().getValues();
     
-    // Find the last QRIS transaction by this kasir and append bukti URL
     for (let i = data.length - 1; i >= 1; i--) {
       if (data[i][2] === 'QRIS' && data[i][3] === kasir && data[i][4] === cabang) {
-        // Append bukti URL to items column or add new column
         const currentItems = data[i][5] || '';
         sheet.getRange(i + 1, 6).setValue(currentItems + ' | Bukti: ' + fileUrl);
         break;
