@@ -799,15 +799,21 @@
     
     // === NAVIGATION ===
     function goToOwner() {
-      const baseUrl = window.location.href.split('?')[0];
-      window.top.location.href = baseUrl + '?page=owner&token=' + TOKEN;
+      google.script.run
+        .withSuccessHandler(function(baseUrl) {
+          window.top.location.href = baseUrl + '?page=owner&token=' + TOKEN;
+        })
+        .getWebAppUrl();
     }
     
     function handleLogout() {
       google.script.run
         .withSuccessHandler(function() {
-          const baseUrl = window.location.href.split('?')[0];
-          window.top.location.href = baseUrl;
+          google.script.run
+            .withSuccessHandler(function(baseUrl) {
+              window.top.location.href = baseUrl;
+            })
+            .getWebAppUrl();
         })
         .logout(TOKEN);
     }

@@ -158,13 +158,22 @@
       google.script.run
         .withSuccessHandler(function(result) {
           if (result.success) {
-            // Store token and redirect
-            const baseUrl = window.location.href.split('?')[0];
-            if (result.role === 'owner') {
-              window.top.location.href = baseUrl + '?page=owner&token=' + result.token;
-            } else {
-              window.top.location.href = baseUrl + '?page=kasir&token=' + result.token;
-            }
+            // Get the correct web app URL from server, then redirect
+            google.script.run
+              .withSuccessHandler(function(baseUrl) {
+                var page = (result.role === 'owner') ? 'owner' : 'kasir';
+                var url = baseUrl + '?page=' + page + '&token=' + result.token;
+                // Use top.location for proper redirect out of iframe
+                window.top.location.href = url;
+              })
+              .withFailureHandler(function() {
+                // Fallback: try using google.script.host
+                errorMsg.textContent = 'Redirect gagal. Silakan refresh halaman.';
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Masuk';
+              })
+              .getWebAppUrl();
           } else {
             errorMsg.textContent = result.message;
             errorMsg.style.display = 'block';

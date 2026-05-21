@@ -65,6 +65,11 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+// === GET WEB APP URL ===
+function getWebAppUrl() {
+  return ScriptApp.getService().getUrl();
+}
+
 // === SESSION MANAGEMENT ===
 function login(username, password) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
