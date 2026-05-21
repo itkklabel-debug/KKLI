@@ -627,22 +627,38 @@
 
     // === EXPORT EXCEL (CSV) ===
     function exportExcel() {
-      if (!currentTransactions || currentTransactions.length === 0) {
-        alert('Tidak ada data untuk diexport!');
-        return;
-      }
       var period = document.getElementById('filterPeriod').value;
       var cabang = document.getElementById('filterCabang').value;
 
-      // CSV header
+      // If data already loaded, use it. Otherwise fetch fresh.
+      if (currentTransactions && currentTransactions.length > 0) {
+        doExportExcel(currentTransactions, period, cabang);
+      } else {
+        // Fetch data from server first
+        google.script.run
+          .withSuccessHandler(function(rows) {
+            if (!rows || rows.length === 0) {
+              alert('Tidak ada data transaksi di periode ini.');
+              return;
+            }
+            currentTransactions = rows;
+            renderTransactionTable(rows);
+            doExportExcel(rows, period, cabang);
+          })
+          .withFailureHandler(function(err) {
+            alert('Gagal mengambil data: ' + (err.message || err));
+          })
+          .getTransactionDetail(period, cabang);
+      }
+    }
+
+    function doExportExcel(data, period, cabang) {
       var csv = 'No,Waktu,Items,Total,Metode,Kasir,Cabang\n';
-      currentTransactions.forEach(function(r, idx) {
-        // Escape commas in items
+      data.forEach(function(r, idx) {
         var items = '"' + (r.items || '').replace(/"/g, '""') + '"';
         csv += (idx+1) + ',' + r.waktu + ',' + items + ',' + r.total + ',' + r.metode + ',' + r.kasir + ',' + r.cabang + '\n';
       });
 
-      // BOM for Excel UTF-8 compatibility
       var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
@@ -656,16 +672,32 @@
 
     // === EXPORT PDF ===
     function exportPDF() {
-      if (!currentTransactions || currentTransactions.length === 0) {
-        alert('Tidak ada data untuk diexport!');
-        return;
-      }
       var period = document.getElementById('filterPeriod').value;
       var cabang = document.getElementById('filterCabang').value;
-      var periodLabel = period === 'today' ? 'Hari Ini' : period === '7days' ? '7 Hari' : '30 Hari';
 
-      // Calculate totals
-      var grandTotal = currentTransactions.reduce(function(s, r) { return s + r.total; }, 0);
+      if (currentTransactions && currentTransactions.length > 0) {
+        doExportPDF(currentTransactions, period, cabang);
+      } else {
+        google.script.run
+          .withSuccessHandler(function(rows) {
+            if (!rows || rows.length === 0) {
+              alert('Tidak ada data transaksi di periode ini.');
+              return;
+            }
+            currentTransactions = rows;
+            renderTransactionTable(rows);
+            doExportPDF(rows, period, cabang);
+          })
+          .withFailureHandler(function(err) {
+            alert('Gagal mengambil data: ' + (err.message || err));
+          })
+          .getTransactionDetail(period, cabang);
+      }
+    }
+
+    function doExportPDF(data, period, cabang) {
+      var periodLabel = period === 'today' ? 'Hari Ini' : period === '7days' ? '7 Hari' : '30 Hari';
+      var grandTotal = data.reduce(function(s, r) { return s + r.total; }, 0);
 
       var printWindow = window.open('', '_blank');
       var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
@@ -686,11 +718,11 @@
         '<div class="info">Periode: ' + periodLabel + ' | Cabang: ' + cabang + ' | Dicetak: ' + new Date().toLocaleString('id-ID') + '</div>' +
         '<table><thead><tr><th>No</th><th>Waktu</th><th>Items</th><th>Total</th><th>Metode</th><th>Kasir</th><th>Cabang</th></tr></thead><tbody>';
 
-      currentTransactions.forEach(function(r, idx) {
+      data.forEach(function(r, idx) {
         html += '<tr><td>' + (idx+1) + '</td><td>' + r.waktu + '</td><td>' + r.items + '</td><td>Rp ' + formatNumber(r.total) + '</td><td>' + r.metode + '</td><td>' + r.kasir + '</td><td>' + r.cabang + '</td></tr>';
       });
 
-      html += '<tr class="total-row"><td colspan="3">TOTAL (' + currentTransactions.length + ' transaksi)</td><td colspan="4">Rp ' + formatNumber(grandTotal) + '</td></tr>';
+      html += '<tr class="total-row"><td colspan="3">TOTAL (' + data.length + ' transaksi)</td><td colspan="4">Rp ' + formatNumber(grandTotal) + '</td></tr>';
       html += '</tbody></table>';
       html += '<div class="footer">Laporan otomatis dari sistem POS Dimsum Enak</div>';
       html += '<script>setTimeout(function(){window.print();},500);<\/script>';
