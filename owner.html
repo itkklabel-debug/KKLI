@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?!= include('style'); ?>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f6fa;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 15px rgba(231,76,60,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left .brand { font-size: 20px; font-weight: 700; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .btn-nav {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-kasir { background: #f1c40f; color: #2c3e50; }
+    .btn-kasir:hover { background: #f39c12; }
+    .btn-logout-o { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
+    .btn-logout-o:hover { background: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <span class="brand">🥟 Dimsum Enak</span>
+      <span style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px;">👑 Owner Dashboard</span>
+    </div>
+    <div class="header-right">
+      <span style="font-size:13px;opacity:0.9;">👤 <?= username ?></span>
+      <button class="btn-nav btn-kasir" onclick="goToKasir()">🧾 Kasir</button>
+      <button class="btn-nav btn-logout-o" onclick="handleLogout()">Keluar</button>
+    </div>
+  </div>
+
+
+  <!-- Tabs -->
+  <div style="padding:20px 24px 0;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="tab-btn active" onclick="showTab('dashboard')">📊 Dashboard</button>
+      <button class="tab-btn" onclick="showTab('laporan')">📋 Laporan</button>
+      <button class="tab-btn" onclick="showTab('menu-mgmt')">🍽️ Kelola Menu</button>
+      <button class="tab-btn" onclick="showTab('users')">👥 Pengguna</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div style="padding:20px 24px;">
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-icon" style="background:#eafaf1;color:#27ae60;">💰</div>
+          <div class="summary-info">
+            <div class="summary-label">Omset Hari Ini</div>
+            <div class="summary-value" id="omsetToday">Rp 0</div>
+            <div class="summary-sub" id="trxToday">0 transaksi</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon" style="background:#eaf0fb;color:#2980b9;">📈</div>
+          <div class="summary-info">
+            <div class="summary-label">Omset 7 Hari</div>
+            <div class="summary-value" id="omsetWeek">Rp 0</div>
+            <div class="summary-sub" id="trxWeek">0 transaksi</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon" style="background:#fef5e7;color:#f39c12;">🏆</div>
+          <div class="summary-info">
+            <div class="summary-label">Omset 30 Hari</div>
+            <div class="summary-value" id="omsetMonth">Rp 0</div>
+            <div class="summary-sub" id="trxMonth">0 transaksi</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h4>📈 Grafik Penjualan 7 Hari Terakhir</h4>
+          <canvas id="chartSales"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>💳 Metode Pembayaran</h4>
+          <canvas id="chartPayment"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- LAPORAN TAB -->
+  <div class="tab-content" id="tab-laporan">
+    <div style="padding:20px 24px;">
+      <div class="filter-row">
+        <select id="filterPeriod" onchange="loadReport()">
+          <option value="today">Hari Ini</option>
+          <option value="7days" selected>7 Hari</option>
+          <option value="30days">30 Hari</option>
+        </select>
+        <select id="filterCabang" onchange="loadReport()">
+          <option value="semua">Semua Cabang</option>
+        </select>
+      </div>
+      <div class="report-grid">
+        <div class="report-card">
+          <h4>👤 Per Kasir</h4>
+          <div id="reportKasir" class="report-list"></div>
+        </div>
+        <div class="report-card">
+          <h4>🏪 Per Cabang</h4>
+          <div id="reportCabang" class="report-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENU MANAGEMENT TAB -->
+  <div class="tab-content" id="tab-menu-mgmt">
+    <div style="padding:20px 24px;">
+      <div class="mgmt-header">
+        <h3 style="margin:0;color:#2c3e50;">Kelola Menu</h3>
+        <button class="btn-add" onclick="showAddMenu()">+ Tambah Menu</button>
+      </div>
+      <!-- Add Menu Form -->
+      <div id="addMenuForm" class="add-form" style="display:none;">
+        <h4 style="margin:0 0 15px;">Tambah Menu Baru</h4>
+        <div class="form-row">
+          <input type="text" id="menuNama" placeholder="Nama menu" class="form-input">
+          <input type="number" id="menuHarga" placeholder="Harga" class="form-input">
+        </div>
+        <div class="form-row">
+          <input type="file" id="menuGambar" accept="image/*" class="form-input">
+        </div>
+        <div class="form-row">
+          <button class="btn-save" onclick="saveMenu()">💾 Simpan</button>
+          <button class="btn-cancel" onclick="hideAddMenu()">Batal</button>
+        </div>
+      </div>
+      <div id="menuList" class="menu-mgmt-list"></div>
+    </div>
+  </div>
+
+
+  <!-- USERS TAB -->
+  <div class="tab-content" id="tab-users">
+    <div style="padding:20px 24px;">
+      <div class="mgmt-header">
+        <h3 style="margin:0;color:#2c3e50;">Kelola Pengguna</h3>
+        <button class="btn-add" onclick="showAddUser()">+ Tambah User</button>
+      </div>
+      <div id="addUserForm" class="add-form" style="display:none;">
+        <h4 style="margin:0 0 15px;">Tambah Pengguna Baru</h4>
+        <div class="form-row">
+          <input type="text" id="newUsername" placeholder="Username" class="form-input">
+          <input type="password" id="newPassword" placeholder="Password" class="form-input">
+        </div>
+        <div class="form-row">
+          <select id="newRole" class="form-input">
+            <option value="kasir">Kasir</option>
+            <option value="owner">Owner</option>
+          </select>
+          <input type="text" id="newCabang" placeholder="Cabang" class="form-input">
+        </div>
+        <div class="form-row">
+          <button class="btn-save" onclick="saveUser()">💾 Simpan</button>
+          <button class="btn-cancel" onclick="hideAddUser()">Batal</button>
+        </div>
+      </div>
+      <div id="userList" class="user-list"></div>
+    </div>
+  </div>
+
+
+  <!-- Additional Styles -->
+  <style>
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: white;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #7f8c8d;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .tab-btn.active {
+      background: #e74c3c;
+      color: white;
+      box-shadow: 0 4px 15px rgba(231,76,60,0.3);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .summary-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .summary-label { font-size: 13px; color: #7f8c8d; }
+    .summary-value { font-size: 22px; font-weight: 800; color: #2c3e50; }
+    .summary-sub { font-size: 12px; color: #95a5a6; margin-top: 2px; }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .chart-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .chart-card h4 { margin: 0 0 15px; color: #2c3e50; font-size: 14px; }
+    .filter-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-row select {
+      padding: 10px 16px;
+      border: 2px solid #ecf0f1;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-row select:focus { border-color: #e74c3c; }
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .report-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .report-card h4 { margin: 0 0 12px; color: #2c3e50; }
+    .report-list { }
+    .report-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f6fa;
+      font-size: 14px;
+    }
+    .report-item-name { color: #2c3e50; font-weight: 500; }
+    .report-item-value { color: #e74c3c; font-weight: 700; }
+    .mgmt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .btn-add {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-add:hover { background: #c0392b; transform: translateY(-2px); }
+    .add-form {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    .form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-input {
+      flex: 1;
+      min-width: 150px;
+      padding: 10px 14px;
+      border: 2px solid #ecf0f1;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-input:focus { border-color: #e74c3c; }
+    .btn-save {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-cancel {
+      background: #ecf0f1;
+      color: #2c3e50;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .menu-mgmt-list { }
+    .menu-mgmt-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    .menu-mgmt-item-left { display: flex; align-items: center; gap: 12px; }
+    .menu-mgmt-img {
+      width: 45px; height: 45px;
+      border-radius: 10px;
+      background: #ffeaa7;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      overflow: hidden;
+    }
+    .menu-mgmt-img img { width: 100%; height: 100%; object-fit: cover; }
+    .menu-mgmt-name { font-weight: 600; color: #2c3e50; }
+    .menu-mgmt-price { font-size: 13px; color: #e74c3c; font-weight: 600; }
+    .menu-mgmt-actions { display: flex; gap: 6px; }
+    .btn-sm {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-toggle { background: #eaf0fb; color: #2980b9; }
+    .btn-delete { background: #fdeaea; color: #e74c3c; }
+    .user-list { }
+    .user-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    .user-item-info { display: flex; align-items: center; gap: 12px; }
+    .user-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e74c3c, #f1c40f);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 16px;
+    }
+    .user-name { font-weight: 600; color: #2c3e50; }
+    .user-meta { font-size: 12px; color: #7f8c8d; }
+    .loading-text { text-align: center; padding: 20px; color: #7f8c8d; }
+
+    @media (max-width: 768px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .report-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+
+
+  <script>
+    const TOKEN = '<?= token ?>';
+    let salesChart = null;
+    let paymentChart = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadDashboard();
+      loadCabangFilter();
+      loadReport();
+      loadMenuList();
+      loadUsers();
+    });
+
+    // Auto refresh every 10 seconds
+    setInterval(function() {
+      const activeTab = document.querySelector('.tab-content.active');
+      if (activeTab.id === 'tab-dashboard') loadDashboard();
+    }, 10000);
+
+    // === TABS ===
+    function showTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.remove('active'); });
+      document.getElementById('tab-' + tab).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tab === 'dashboard') loadDashboard();
+      if (tab === 'laporan') loadReport();
+      if (tab === 'menu-mgmt') loadMenuList();
+      if (tab === 'users') loadUsers();
+    }
+
+    // === DASHBOARD ===
+    function loadDashboard() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          document.getElementById('omsetToday').textContent = 'Rp ' + formatNumber(data.today);
+          document.getElementById('trxToday').textContent = data.todayTrx + ' transaksi';
+          document.getElementById('omsetWeek').textContent = 'Rp ' + formatNumber(data.week);
+          document.getElementById('trxWeek').textContent = data.weekTrx + ' transaksi';
+          document.getElementById('omsetMonth').textContent = 'Rp ' + formatNumber(data.month);
+          document.getElementById('trxMonth').textContent = data.monthTrx + ' transaksi';
+        })
+        .getDashboardSummary();
+
+      // Load chart data
+      google.script.run
+        .withSuccessHandler(function(data) {
+          renderSalesChart(data.perHari);
+          renderPaymentChart(data.perMetode);
+        })
+        .getReportData('7days', 'semua');
+    }
+
+    function renderSalesChart(perHari) {
+      const labels = Object.keys(perHari);
+      const values = Object.values(perHari);
+
+      if (salesChart) salesChart.destroy();
+      const ctx = document.getElementById('chartSales').getContext('2d');
+      salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Omset',
+            data: values,
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231,76,60,0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: '#e74c3c'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { callback: function(v) { return 'Rp ' + formatNumber(v); } } }
+          }
+        }
+      });
+    }
+
+    function renderPaymentChart(perMetode) {
+      if (paymentChart) paymentChart.destroy();
+      const ctx = document.getElementById('chartPayment').getContext('2d');
+      paymentChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(perMetode),
+          datasets: [{
+            data: Object.values(perMetode),
+            backgroundColor: ['#27ae60', '#2980b9'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    // === REPORTS ===
+    function loadCabangFilter() {
+      google.script.run
+        .withSuccessHandler(function(list) {
+          const sel = document.getElementById('filterCabang');
+          list.forEach(function(c) {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            sel.appendChild(opt);
+          });
+        })
+        .getCabangList();
+    }
+
+    function loadReport() {
+      const period = document.getElementById('filterPeriod').value;
+      const cabang = document.getElementById('filterCabang').value;
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          renderReportKasir(data.perKasir);
+          renderReportCabang(data.perCabang);
+        })
+        .getReportData(period, cabang);
+    }
+
+    function renderReportKasir(perKasir) {
+      const container = document.getElementById('reportKasir');
+      if (Object.keys(perKasir).length === 0) {
+        container.innerHTML = '<p class="loading-text">Belum ada data</p>';
+        return;
+      }
+      let html = '';
+      Object.entries(perKasir).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(entry) {
+        html += '<div class="report-item"><span class="report-item-name">' + entry[0] + '</span><span class="report-item-value">Rp ' + formatNumber(entry[1]) + '</span></div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function renderReportCabang(perCabang) {
+      const container = document.getElementById('reportCabang');
+      if (Object.keys(perCabang).length === 0) {
+        container.innerHTML = '<p class="loading-text">Belum ada data</p>';
+        return;
+      }
+      let html = '';
+      Object.entries(perCabang).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(entry) {
+        html += '<div class="report-item"><span class="report-item-name">' + entry[0] + '</span><span class="report-item-value">Rp ' + formatNumber(entry[1]) + '</span></div>';
+      });
+      container.innerHTML = html;
+    }
+
+
+    // === MENU MANAGEMENT ===
+    function showAddMenu() { document.getElementById('addMenuForm').style.display = 'block'; }
+    function hideAddMenu() { document.getElementById('addMenuForm').style.display = 'none'; }
+
+    function saveMenu() {
+      const nama = document.getElementById('menuNama').value.trim();
+      const harga = parseInt(document.getElementById('menuHarga').value);
+      const fileInput = document.getElementById('menuGambar');
+
+      if (!nama || !harga) { alert('Nama dan harga wajib diisi!'); return; }
+
+      if (fileInput.files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const base64 = e.target.result.split(',')[1];
+          const filename = fileInput.files[0].name;
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if (res.success) { hideAddMenu(); loadMenuList(); clearMenuForm(); }
+            })
+            .addMenu(nama, harga, base64, filename);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) { hideAddMenu(); loadMenuList(); clearMenuForm(); }
+          })
+          .addMenu(nama, harga, '', '');
+      }
+    }
+
+    function clearMenuForm() {
+      document.getElementById('menuNama').value = '';
+      document.getElementById('menuHarga').value = '';
+      document.getElementById('menuGambar').value = '';
+    }
+
+    function loadMenuList() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const container = document.getElementById('menuList');
+          if (data.length === 0) {
+            container.innerHTML = '<p class="loading-text">Belum ada menu</p>';
+            return;
+          }
+          let html = '';
+          data.forEach(function(item) {
+            const imgHtml = (item.gambar && item.gambar.length > 5)
+              ? '<img src="' + item.gambar + '">'
+              : '🥟';
+            const statusText = item.aktif ? 'Nonaktifkan' : 'Aktifkan';
+            html += '<div class="menu-mgmt-item">' +
+              '<div class="menu-mgmt-item-left">' +
+                '<div class="menu-mgmt-img">' + imgHtml + '</div>' +
+                '<div><div class="menu-mgmt-name">' + item.nama + '</div><div class="menu-mgmt-price">Rp ' + formatNumber(item.harga) + '</div></div>' +
+              '</div>' +
+              '<div class="menu-mgmt-actions">' +
+                '<button class="btn-sm btn-toggle" onclick="toggleMenuItem(' + item.id + ',' + !item.aktif + ')">' + statusText + '</button>' +
+                '<button class="btn-sm btn-delete" onclick="deleteMenuItem(' + item.id + ')">Hapus</button>' +
+              '</div>' +
+            '</div>';
+          });
+          container.innerHTML = html;
+        })
+        .getAllMenu();
+    }
+
+    function toggleMenuItem(id, aktif) {
+      google.script.run.withSuccessHandler(function() { loadMenuList(); }).toggleMenu(id, aktif);
+    }
+
+    function deleteMenuItem(id) {
+      if (confirm('Yakin hapus menu ini?')) {
+        google.script.run.withSuccessHandler(function() { loadMenuList(); }).deleteMenu(id);
+      }
+    }
+
+    // === USER MANAGEMENT ===
+    function showAddUser() { document.getElementById('addUserForm').style.display = 'block'; }
+    function hideAddUser() { document.getElementById('addUserForm').style.display = 'none'; }
+
+    function saveUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const role = document.getElementById('newRole').value;
+      const cabang = document.getElementById('newCabang').value.trim();
+
+      if (!username || !password || !cabang) { alert('Semua field wajib diisi!'); return; }
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            hideAddUser();
+            loadUsers();
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newCabang').value = '';
+          } else {
+            alert(res.message);
+          }
+        })
+        .addUser(username, password, role, cabang);
+    }
+
+    function loadUsers() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          const container = document.getElementById('userList');
+          let html = '';
+          data.forEach(function(user) {
+            html += '<div class="user-item">' +
+              '<div class="user-item-info">' +
+                '<div class="user-avatar">' + user.username.charAt(0).toUpperCase() + '</div>' +
+                '<div><div class="user-name">' + user.username + '</div><div class="user-meta">' + user.role + ' • ' + user.cabang + '</div></div>' +
+              '</div>' +
+              '<button class="btn-sm btn-delete" onclick="deleteUserItem(\'' + user.username + '\')">Hapus</button>' +
+            '</div>';
+          });
+          container.innerHTML = html;
+        })
+        .getUsers();
+    }
+
+    function deleteUserItem(username) {
+      if (confirm('Yakin hapus user ' + username + '?')) {
+        google.script.run.withSuccessHandler(function() { loadUsers(); }).deleteUser(username);
+      }
+    }
+
+    // === NAVIGATION ===
+    function goToKasir() {
+      google.script.run
+        .withSuccessHandler(function(baseUrl) {
+          window.top.location.href = baseUrl + '?page=kasir&token=' + TOKEN;
+        })
+        .getWebAppUrl();
+    }
+
+    function handleLogout() {
+      google.script.run
+        .withSuccessHandler(function() {
+          google.script.run
+            .withSuccessHandler(function(baseUrl) {
+              window.top.location.href = baseUrl;
+            })
+            .getWebAppUrl();
+        })
+        .logout(TOKEN);
+    }
+
+    // === UTILITIES ===
+    function formatNumber(num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  </script>
+</body>
+</html>
