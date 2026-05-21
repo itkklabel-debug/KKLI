@@ -3,903 +3,328 @@
 <head>
   <base target="_top">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <?!= include('style'); ?>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f6fa;
-      min-height: 100vh;
-    }
-    .header {
-      background: linear-gradient(135deg, #e74c3c, #c0392b);
-      color: white;
-      padding: 14px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 4px 15px rgba(231,76,60,0.3);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header-left { display: flex; align-items: center; gap: 12px; }
-    .header-left .brand { font-size: 20px; font-weight: 700; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    .btn-nav {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    .btn-kasir { background: #f1c40f; color: #2c3e50; }
-    .btn-kasir:hover { background: #f39c12; }
-    .btn-logout-o { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
-    .btn-logout-o:hover { background: rgba(255,255,255,0.3); }
-</style>
 </head>
-<body>
-  <div class="header">
-    <div class="header-left">
-      <span class="brand">🥟 Dimsum Enak</span>
-      <span style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:12px;">👑 Owner Dashboard</span>
-    </div>
-    <div class="header-right">
-      <span style="font-size:13px;opacity:0.9;">👤 <?= username ?></span>
-      <button class="btn-nav btn-kasir" onclick="goToKasir()">🧾 Kasir</button>
-      <button class="btn-nav btn-logout-o" onclick="handleLogout()">Keluar</button>
-    </div>
-  </div>
+<body class="bg-gray-50 min-h-screen pb-20">
 
-
-  <!-- Tabs -->
-  <div style="padding:20px 24px 0;">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="tab-btn active" onclick="showTab('dashboard')">📊 Dashboard</button>
-      <button class="tab-btn" onclick="showTab('laporan')">📋 Laporan</button>
-      <button class="tab-btn" onclick="showTab('menu-mgmt')">🍽️ Kelola Menu</button>
-      <button class="tab-btn" onclick="showTab('users')">👥 Pengguna</button>
+  <!-- TOP HEADER -->
+  <header class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-3 flex items-center justify-between shadow-lg shadow-primary-500/20 sticky top-0 z-50">
+    <div class="flex items-center gap-2">
+      <span class="text-lg font-bold">🥟 Dimsum Enak</span>
+      <span class="bg-white/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">👑 Owner</span>
     </div>
-  </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs opacity-80 hidden sm:block">👤 <?= username ?></span>
+      <button onclick="goToKasir()" class="bg-accent-400 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-lg">🧾</button>
+      <button onclick="handleLogout()" class="bg-white/20 text-xs font-semibold px-3 py-1.5 rounded-lg">Keluar</button>
+    </div>
+  </header>
 
-  <!-- DASHBOARD TAB -->
-  <div class="tab-content active" id="tab-dashboard">
-    <div style="padding:20px 24px;">
-      <!-- Summary Cards -->
-      <div class="summary-grid">
-        <div class="summary-card">
-          <div class="summary-icon" style="background:#eafaf1;color:#27ae60;">💰</div>
-          <div class="summary-info">
-            <div class="summary-label">Omset Hari Ini</div>
-            <div class="summary-value" id="omsetToday">Rp 0</div>
-            <div class="summary-sub" id="trxToday">0 transaksi</div>
-          </div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-icon" style="background:#eaf0fb;color:#2980b9;">📈</div>
-          <div class="summary-info">
-            <div class="summary-label">Omset 7 Hari</div>
-            <div class="summary-value" id="omsetWeek">Rp 0</div>
-            <div class="summary-sub" id="trxWeek">0 transaksi</div>
-          </div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-icon" style="background:#fef5e7;color:#f39c12;">🏆</div>
-          <div class="summary-info">
-            <div class="summary-label">Omset 30 Hari</div>
-            <div class="summary-value" id="omsetMonth">Rp 0</div>
-            <div class="summary-sub" id="trxMonth">0 transaksi</div>
-          </div>
-        </div>
+  <!-- TAB CONTENT AREA -->
+  <div id="tab-dashboard" class="tab-page px-4 pt-4 space-y-4">
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center text-lg">💰</div>
+        <div><p class="text-[10px] text-gray-400 font-medium">Hari Ini</p><p id="omsetToday" class="text-lg font-extrabold text-gray-800">Rp 0</p><p id="trxToday" class="text-[10px] text-gray-400">0 trx</p></div>
       </div>
-
-      <!-- Charts -->
-      <div class="chart-grid">
-        <div class="chart-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <h4 style="margin:0;">📈 Grafik Penjualan</h4>
-            <select id="chartPeriod" onchange="loadChartByPeriod()" style="padding:6px 12px;border:2px solid #ecf0f1;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;outline:none;">
-              <option value="today">Hari Ini</option>
-              <option value="7days" selected>7 Hari</option>
-              <option value="30days">30 Hari</option>
-            </select>
-          </div>
-          <canvas id="chartSales"></canvas>
+      <div class="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-lg">📈</div>
+        <div><p class="text-[10px] text-gray-400 font-medium">7 Hari</p><p id="omsetWeek" class="text-lg font-extrabold text-gray-800">Rp 0</p><p id="trxWeek" class="text-[10px] text-gray-400">0 trx</p></div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-lg">🏆</div>
+        <div><p class="text-[10px] text-gray-400 font-medium">30 Hari</p><p id="omsetMonth" class="text-lg font-extrabold text-gray-800">Rp 0</p><p id="trxMonth" class="text-[10px] text-gray-400">0 trx</p></div>
+      </div>
+    </div>
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div class="lg:col-span-2 bg-white rounded-2xl p-4 shadow-sm">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="text-xs font-bold text-gray-700">📈 Grafik Penjualan</h4>
+          <select id="chartPeriod" onchange="loadChartByPeriod()" class="text-[11px] font-semibold border border-gray-200 rounded-lg px-2 py-1 outline-none">
+            <option value="today">Hari Ini</option><option value="7days" selected>7 Hari</option><option value="30days">30 Hari</option>
+          </select>
         </div>
-        <div class="chart-card">
-          <h4>💳 Metode Pembayaran</h4>
-          <canvas id="chartPayment"></canvas>
-        </div>
+        <canvas id="chartSales" height="140"></canvas>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <h4 class="text-xs font-bold text-gray-700 mb-3">💳 Metode Bayar</h4>
+        <canvas id="chartPayment" height="140"></canvas>
       </div>
     </div>
   </div>
 
 
   <!-- LAPORAN TAB -->
-  <div class="tab-content" id="tab-laporan">
-    <div style="padding:20px 24px;">
-      <div class="filter-row">
-        <select id="filterPeriod" onchange="loadReport()">
-          <option value="today">Hari Ini</option>
-          <option value="7days" selected>7 Hari</option>
-          <option value="30days">30 Hari</option>
-        </select>
-        <select id="filterCabang" onchange="loadReport()">
-          <option value="semua">Semua Cabang</option>
-        </select>
-        <button onclick="exportExcel()" style="padding:10px 16px;background:#27ae60;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📥 Excel</button>
-        <button onclick="exportPDF()" style="padding:10px 16px;background:#e74c3c;color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">📄 PDF</button>
-      </div>
-      <div class="report-grid">
-        <div class="report-card">
-          <h4>👤 Per Kasir</h4>
-          <div id="reportKasir" class="report-list"></div>
-        </div>
-        <div class="report-card">
-          <h4>🏪 Per Cabang</h4>
-          <div id="reportCabang" class="report-list"></div>
-        </div>
-      </div>
-      <!-- Detail Transaksi Table -->
-      <div style="margin-top:20px;">
-        <div class="report-card" style="overflow-x:auto;">
-          <h4>📋 Detail Transaksi</h4>
-          <table id="trxTable" style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px;">
-            <thead>
-              <tr style="background:#f5f6fa;text-align:left;">
-                <th style="padding:10px 8px;border-bottom:2px solid #ecf0f1;">Waktu</th>
-                <th style="padding:10px 8px;border-bottom:2px solid #ecf0f1;">Items</th>
-                <th style="padding:10px 8px;border-bottom:2px solid #ecf0f1;">Total</th>
-                <th style="padding:10px 8px;border-bottom:2px solid #ecf0f1;">Metode</th>
-                <th style="padding:10px 8px;border-bottom:2px solid #ecf0f1;">Kasir</th>
-                <th style="padding:10px 8px;border-bottom:2px solid #ecf0f1;">Cabang</th>
-              </tr>
-            </thead>
-            <tbody id="trxTableBody">
-              <tr><td colspan="6" class="loading-text">Memuat data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <div id="tab-laporan" class="tab-page hidden px-4 pt-4 space-y-4">
+    <div class="flex flex-wrap gap-2 items-center">
+      <select id="filterPeriod" onchange="loadReport()" class="text-xs font-semibold border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+        <option value="today">Hari Ini</option><option value="7days" selected>7 Hari</option><option value="30days">30 Hari</option>
+      </select>
+      <select id="filterCabang" onchange="loadReport()" class="text-xs font-semibold border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+        <option value="semua">Semua Cabang</option>
+      </select>
+      <button onclick="exportExcel()" class="text-xs font-bold bg-green-500 text-white px-3 py-2.5 rounded-xl active:scale-95 transition">📥 Excel</button>
+      <button onclick="exportPDF()" class="text-xs font-bold bg-primary-500 text-white px-3 py-2.5 rounded-xl active:scale-95 transition">📄 PDF</button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="bg-white rounded-2xl p-4 shadow-sm"><h4 class="text-xs font-bold text-gray-700 mb-2">👤 Per Kasir</h4><div id="reportKasir" class="space-y-1"></div></div>
+      <div class="bg-white rounded-2xl p-4 shadow-sm"><h4 class="text-xs font-bold text-gray-700 mb-2">🏪 Per Cabang</h4><div id="reportCabang" class="space-y-1"></div></div>
+    </div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm overflow-x-auto">
+      <h4 class="text-xs font-bold text-gray-700 mb-3">📋 Detail Transaksi</h4>
+      <table class="w-full text-[11px] min-w-[550px]">
+        <thead><tr class="bg-gray-50 text-gray-500"><th class="text-left py-2 px-2 rounded-l-lg">Waktu</th><th class="text-left py-2 px-2">Items</th><th class="text-left py-2 px-2">Total</th><th class="text-left py-2 px-2">Metode</th><th class="text-left py-2 px-2">Kasir</th><th class="text-left py-2 px-2 rounded-r-lg">Cabang</th></tr></thead>
+        <tbody id="trxTableBody"><tr><td colspan="6" class="text-center py-6 text-gray-300">Memuat...</td></tr></tbody>
+      </table>
     </div>
   </div>
+
 
   <!-- MENU MANAGEMENT TAB -->
-  <div class="tab-content" id="tab-menu-mgmt">
-    <div style="padding:20px 24px;">
-      <div class="mgmt-header">
-        <h3 style="margin:0;color:#2c3e50;">Kelola Menu</h3>
-        <button class="btn-add" onclick="showAddMenu()">+ Tambah Menu</button>
-      </div>
-      <!-- Add Menu Form -->
-      <div id="addMenuForm" class="add-form" style="display:none;">
-        <h4 style="margin:0 0 15px;">Tambah Menu Baru</h4>
-        <div class="form-row">
-          <input type="text" id="menuNama" placeholder="Nama menu" class="form-input">
-          <input type="number" id="menuHarga" placeholder="Harga" class="form-input">
-        </div>
-        <div class="form-row">
-          <input type="file" id="menuGambar" accept="image/*" class="form-input">
-        </div>
-        <div class="form-row">
-          <button class="btn-save" onclick="saveMenu()">💾 Simpan</button>
-          <button class="btn-cancel" onclick="hideAddMenu()">Batal</button>
-        </div>
-      </div>
-      <div id="menuList" class="menu-mgmt-list"></div>
+  <div id="tab-menu" class="tab-page hidden px-4 pt-4 space-y-4">
+    <div class="flex justify-between items-center">
+      <h3 class="text-sm font-bold text-gray-800">🍽️ Kelola Menu</h3>
+      <button onclick="showAddMenu()" class="text-xs font-bold bg-primary-500 text-white px-4 py-2 rounded-xl active:scale-95 transition">+ Tambah</button>
     </div>
+    <div id="addMenuForm" class="hidden bg-white rounded-2xl p-4 shadow-sm space-y-3">
+      <h4 class="text-xs font-bold text-gray-700">Tambah Menu Baru</h4>
+      <div class="grid grid-cols-2 gap-2">
+        <input type="text" id="menuNama" placeholder="Nama menu" class="text-xs border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+        <input type="number" id="menuHarga" placeholder="Harga" class="text-xs border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+      </div>
+      <input type="file" id="menuGambar" accept="image/*" class="text-xs">
+      <div class="flex gap-2">
+        <button onclick="saveMenu()" class="text-xs font-bold bg-green-500 text-white px-4 py-2 rounded-xl">💾 Simpan</button>
+        <button onclick="hideAddMenu()" class="text-xs font-semibold bg-gray-100 text-gray-600 px-4 py-2 rounded-xl">Batal</button>
+      </div>
+    </div>
+    <div id="menuList" class="space-y-2"></div>
   </div>
-
 
   <!-- USERS TAB -->
-  <div class="tab-content" id="tab-users">
-    <div style="padding:20px 24px;">
-      <div class="mgmt-header">
-        <h3 style="margin:0;color:#2c3e50;">Kelola Pengguna</h3>
-        <button class="btn-add" onclick="showAddUser()">+ Tambah User</button>
-      </div>
-      <div id="addUserForm" class="add-form" style="display:none;">
-        <h4 style="margin:0 0 15px;">Tambah Pengguna Baru</h4>
-        <div class="form-row">
-          <input type="text" id="newUsername" placeholder="Username" class="form-input">
-          <input type="password" id="newPassword" placeholder="Password" class="form-input">
-        </div>
-        <div class="form-row">
-          <select id="newRole" class="form-input">
-            <option value="kasir">Kasir</option>
-            <option value="owner">Owner</option>
-          </select>
-          <input type="text" id="newCabang" placeholder="Cabang" class="form-input">
-        </div>
-        <div class="form-row">
-          <button class="btn-save" onclick="saveUser()">💾 Simpan</button>
-          <button class="btn-cancel" onclick="hideAddUser()">Batal</button>
-        </div>
-      </div>
-      <div id="userList" class="user-list"></div>
+  <div id="tab-users" class="tab-page hidden px-4 pt-4 space-y-4">
+    <div class="flex justify-between items-center">
+      <h3 class="text-sm font-bold text-gray-800">👥 Kelola Pengguna</h3>
+      <button onclick="showAddUser()" class="text-xs font-bold bg-primary-500 text-white px-4 py-2 rounded-xl active:scale-95 transition">+ Tambah</button>
     </div>
+    <div id="addUserForm" class="hidden bg-white rounded-2xl p-4 shadow-sm space-y-3">
+      <h4 class="text-xs font-bold text-gray-700">Tambah Pengguna</h4>
+      <div class="grid grid-cols-2 gap-2">
+        <input type="text" id="newUsername" placeholder="Username" class="text-xs border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+        <input type="password" id="newPassword" placeholder="Password" class="text-xs border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+        <select id="newRole" class="text-xs border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none"><option value="kasir">Kasir</option><option value="owner">Owner</option></select>
+        <input type="text" id="newCabang" placeholder="Cabang" class="text-xs border-2 border-gray-100 rounded-xl px-3 py-2.5 outline-none focus:border-primary-500">
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveUser()" class="text-xs font-bold bg-green-500 text-white px-4 py-2 rounded-xl">💾 Simpan</button>
+        <button onclick="hideAddUser()" class="text-xs font-semibold bg-gray-100 text-gray-600 px-4 py-2 rounded-xl">Batal</button>
+      </div>
+    </div>
+    <div id="userList" class="space-y-2"></div>
   </div>
 
 
-  <!-- Additional Styles -->
-  <style>
-    .tab-btn {
-      padding: 10px 20px;
-      border: none;
-      background: white;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #7f8c8d;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .tab-btn.active {
-      background: #e74c3c;
-      color: white;
-      box-shadow: 0 4px 15px rgba(231,76,60,0.3);
-    }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .summary-card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-    }
-    .summary-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-    .summary-label { font-size: 13px; color: #7f8c8d; }
-    .summary-value { font-size: 22px; font-weight: 800; color: #2c3e50; }
-    .summary-sub { font-size: 12px; color: #95a5a6; margin-top: 2px; }
-    .chart-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 16px;
-    }
-    .chart-card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-    }
-    .chart-card h4 { margin: 0 0 15px; color: #2c3e50; font-size: 14px; }
-    .filter-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .filter-row select {
-      padding: 10px 16px;
-      border: 2px solid #ecf0f1;
-      border-radius: 10px;
-      font-size: 14px;
-      outline: none;
-      cursor: pointer;
-    }
-    .filter-row select:focus { border-color: #e74c3c; }
-    .report-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    .report-card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-    }
-    .report-card h4 { margin: 0 0 12px; color: #2c3e50; }
-    .report-list { }
-    .report-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #f5f6fa;
-      font-size: 14px;
-    }
-    .report-item-name { color: #2c3e50; font-weight: 500; }
-    .report-item-value { color: #e74c3c; font-weight: 700; }
-    .mgmt-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .btn-add {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    .btn-add:hover { background: #c0392b; transform: translateY(-2px); }
-    .add-form {
-      background: white;
-      border-radius: 14px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-    }
-    .form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-    .form-input {
-      flex: 1;
-      min-width: 150px;
-      padding: 10px 14px;
-      border: 2px solid #ecf0f1;
-      border-radius: 10px;
-      font-size: 14px;
-      outline: none;
-    }
-    .form-input:focus { border-color: #e74c3c; }
-    .btn-save {
-      background: #27ae60;
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-cancel {
-      background: #ecf0f1;
-      color: #2c3e50;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .menu-mgmt-list { }
-    .menu-mgmt-item {
-      background: white;
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    }
-    .menu-mgmt-item-left { display: flex; align-items: center; gap: 12px; }
-    .menu-mgmt-img {
-      width: 45px; height: 45px;
-      border-radius: 10px;
-      background: #ffeaa7;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      overflow: hidden;
-    }
-    .menu-mgmt-img img { width: 100%; height: 100%; object-fit: cover; }
-    .menu-mgmt-name { font-weight: 600; color: #2c3e50; }
-    .menu-mgmt-price { font-size: 13px; color: #e74c3c; font-weight: 600; }
-    .menu-mgmt-actions { display: flex; gap: 6px; }
-    .btn-sm {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn-toggle { background: #eaf0fb; color: #2980b9; }
-    .btn-delete { background: #fdeaea; color: #e74c3c; }
-    .user-list { }
-    .user-item {
-      background: white;
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    }
-    .user-item-info { display: flex; align-items: center; gap: 12px; }
-    .user-avatar {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #e74c3c, #f1c40f);
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 700; font-size: 16px;
-    }
-    .user-name { font-weight: 600; color: #2c3e50; }
-    .user-meta { font-size: 12px; color: #7f8c8d; }
-    .loading-text { text-align: center; padding: 20px; color: #7f8c8d; }
+  <!-- BOTTOM NAVIGATION BAR (Mobile App Style) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-[0_-2px_20px_rgba(0,0,0,0.06)] z-50 safe-bottom">
+    <div class="flex justify-around items-center py-2 max-w-lg mx-auto">
+      <button onclick="showTab('dashboard')" id="nav-dashboard" class="nav-btn nav-active flex flex-col items-center gap-0.5 px-3 py-1">
+        <span class="text-lg">📊</span><span class="text-[9px] font-semibold">Dashboard</span>
+      </button>
+      <button onclick="showTab('laporan')" id="nav-laporan" class="nav-btn flex flex-col items-center gap-0.5 px-3 py-1">
+        <span class="text-lg">📋</span><span class="text-[9px] font-semibold">Laporan</span>
+      </button>
+      <button onclick="showTab('menu')" id="nav-menu" class="nav-btn flex flex-col items-center gap-0.5 px-3 py-1">
+        <span class="text-lg">🍽️</span><span class="text-[9px] font-semibold">Menu</span>
+      </button>
+      <button onclick="showTab('users')" id="nav-users" class="nav-btn flex flex-col items-center gap-0.5 px-3 py-1">
+        <span class="text-lg">👥</span><span class="text-[9px] font-semibold">User</span>
+      </button>
+    </div>
+  </nav>
 
-    @media (max-width: 768px) {
-      .chart-grid { grid-template-columns: 1fr; }
-      .report-grid { grid-template-columns: 1fr; }
-      .summary-grid { grid-template-columns: 1fr; }
-    }
+  <style>
+    .nav-btn { color: #9ca3af; transition: all 0.2s; }
+    .nav-active { color: #e74c3c !important; }
+    .nav-btn:active { transform: scale(0.9); }
   </style>
 
 
   <script>
-    const TOKEN = '<?= token ?>';
-    let salesChart = null;
-    let paymentChart = null;
+    var TOKEN = '<?= token ?>';
+    var salesChart = null, paymentChart = null;
 
-    document.addEventListener('DOMContentLoaded', function() {
-      loadDashboard();
-      loadCabangFilter();
-      loadReport();
-      loadMenuList();
-      loadUsers();
+    document.addEventListener('DOMContentLoaded', function(){
+      loadDashboard(); loadCabangFilter(); loadReport(); loadMenuList(); loadUsers();
     });
-
-    // Auto refresh every 10 seconds
-    setInterval(function() {
-      const activeTab = document.querySelector('.tab-content.active');
-      if (activeTab.id === 'tab-dashboard') loadDashboard();
-    }, 10000);
+    setInterval(function(){ if(!document.getElementById('tab-dashboard').classList.contains('hidden')) loadDashboard(); }, 10000);
 
     // === TABS ===
-    function showTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
-      document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.remove('active'); });
-      document.getElementById('tab-' + tab).classList.add('active');
-      event.target.classList.add('active');
-
-      if (tab === 'dashboard') loadDashboard();
-      if (tab === 'laporan') loadReport();
-      if (tab === 'menu-mgmt') loadMenuList();
-      if (tab === 'users') loadUsers();
+    function showTab(tab){
+      document.querySelectorAll('.tab-page').forEach(function(el){el.classList.add('hidden');});
+      document.getElementById('tab-'+tab).classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(function(el){el.classList.remove('nav-active');});
+      document.getElementById('nav-'+tab).classList.add('nav-active');
+      if(tab==='dashboard') loadDashboard();
+      if(tab==='laporan') loadReport();
+      if(tab==='menu') loadMenuList();
+      if(tab==='users') loadUsers();
     }
 
     // === DASHBOARD ===
-    function loadDashboard() {
-      google.script.run
-        .withSuccessHandler(function(data) {
-          document.getElementById('omsetToday').textContent = 'Rp ' + formatNumber(data.today);
-          document.getElementById('trxToday').textContent = data.todayTrx + ' transaksi';
-          document.getElementById('omsetWeek').textContent = 'Rp ' + formatNumber(data.week);
-          document.getElementById('trxWeek').textContent = data.weekTrx + ' transaksi';
-          document.getElementById('omsetMonth').textContent = 'Rp ' + formatNumber(data.month);
-          document.getElementById('trxMonth').textContent = data.monthTrx + ' transaksi';
-        })
-        .getDashboardSummary();
-
-      // Load chart with selected period
+    function loadDashboard(){
+      google.script.run.withSuccessHandler(function(d){
+        document.getElementById('omsetToday').textContent='Rp '+formatNumber(d.today);
+        document.getElementById('trxToday').textContent=d.todayTrx+' trx';
+        document.getElementById('omsetWeek').textContent='Rp '+formatNumber(d.week);
+        document.getElementById('trxWeek').textContent=d.weekTrx+' trx';
+        document.getElementById('omsetMonth').textContent='Rp '+formatNumber(d.month);
+        document.getElementById('trxMonth').textContent=d.monthTrx+' trx';
+      }).getDashboardSummary();
       loadChartByPeriod();
     }
-
-    function loadChartByPeriod() {
-      var chartPeriod = document.getElementById('chartPeriod').value;
-      google.script.run
-        .withSuccessHandler(function(data) {
-          renderSalesChart(data.perHari, chartPeriod);
-          renderPaymentChart(data.perMetode);
-        })
-        .getReportData(chartPeriod, 'semua');
+    function loadChartByPeriod(){
+      var p=document.getElementById('chartPeriod').value;
+      google.script.run.withSuccessHandler(function(d){ renderSalesChart(d.perHari,p); renderPaymentChart(d.perMetode); }).getReportData(p,'semua');
     }
-
-    function renderSalesChart(perHari, period) {
-      const labels = Object.keys(perHari);
-      const values = Object.values(perHari);
-      var periodLabel = period === 'today' ? 'Hari Ini (per jam)' : period === '7days' ? '7 Hari Terakhir' : '30 Hari Terakhir';
-
-      if (salesChart) salesChart.destroy();
-      const ctx = document.getElementById('chartSales').getContext('2d');
-      salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Omset ' + periodLabel,
-            data: values,
-            borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231,76,60,0.1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: '#e74c3c'
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, ticks: { callback: function(v) { return 'Rp ' + formatNumber(v); } } }
-          }
-        }
+    function renderSalesChart(perHari,period){
+      if(salesChart) salesChart.destroy();
+      salesChart = new Chart(document.getElementById('chartSales').getContext('2d'),{
+        type:'line',
+        data:{labels:Object.keys(perHari),datasets:[{label:'Omset',data:Object.values(perHari),borderColor:'#e74c3c',backgroundColor:'rgba(231,76,60,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#e74c3c'}]},
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:function(v){return 'Rp '+formatNumber(v);},font:{size:9}}}}}
+      });
+    }
+    function renderPaymentChart(perMetode){
+      if(paymentChart) paymentChart.destroy();
+      paymentChart = new Chart(document.getElementById('chartPayment').getContext('2d'),{
+        type:'doughnut',
+        data:{labels:Object.keys(perMetode),datasets:[{data:Object.values(perMetode),backgroundColor:['#27ae60','#2980b9'],borderWidth:0}]},
+        options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}
       });
     }
 
-    function renderPaymentChart(perMetode) {
-      if (paymentChart) paymentChart.destroy();
-      const ctx = document.getElementById('chartPayment').getContext('2d');
-      paymentChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: Object.keys(perMetode),
-          datasets: [{
-            data: Object.values(perMetode),
-            backgroundColor: ['#27ae60', '#2980b9'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom' } }
-        }
-      });
-    }
 
     // === REPORTS ===
-    function loadCabangFilter() {
-      google.script.run
-        .withSuccessHandler(function(list) {
-          const sel = document.getElementById('filterCabang');
-          list.forEach(function(c) {
-            const opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
-            sel.appendChild(opt);
-          });
-        })
-        .getCabangList();
+    function loadCabangFilter(){
+      google.script.run.withSuccessHandler(function(list){
+        var sel=document.getElementById('filterCabang');
+        list.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+      }).getCabangList();
     }
-
-    function loadReport() {
-      const period = document.getElementById('filterPeriod').value;
-      const cabang = document.getElementById('filterCabang').value;
-
-      google.script.run
-        .withSuccessHandler(function(data) {
-          renderReportKasir(data.perKasir);
-          renderReportCabang(data.perCabang);
-        })
-        .getReportData(period, cabang);
-
-      // Load detail transactions
-      google.script.run
-        .withSuccessHandler(function(rows) {
-          renderTransactionTable(rows);
-        })
-        .getTransactionDetail(period, cabang);
+    function loadReport(){
+      var period=document.getElementById('filterPeriod').value;
+      var cabang=document.getElementById('filterCabang').value;
+      google.script.run.withSuccessHandler(function(d){ renderReportKasir(d.perKasir); renderReportCabang(d.perCabang); }).getReportData(period,cabang);
+      google.script.run.withSuccessHandler(function(rows){ renderTransactionTable(rows); }).getTransactionDetail(period,cabang);
     }
-
-    function renderReportKasir(perKasir) {
-      const container = document.getElementById('reportKasir');
-      if (Object.keys(perKasir).length === 0) {
-        container.innerHTML = '<p class="loading-text">Belum ada data</p>';
-        return;
-      }
-      let html = '';
-      Object.entries(perKasir).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(entry) {
-        html += '<div class="report-item"><span class="report-item-name">' + entry[0] + '</span><span class="report-item-value">Rp ' + formatNumber(entry[1]) + '</span></div>';
-      });
-      container.innerHTML = html;
+    function renderReportKasir(pk){
+      var c=document.getElementById('reportKasir');
+      if(!Object.keys(pk).length){c.innerHTML='<p class="text-xs text-gray-300 text-center py-4">Belum ada data</p>';return;}
+      var h='';Object.entries(pk).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+        h+='<div class="flex justify-between py-1.5 border-b border-gray-50 text-xs"><span class="text-gray-600">'+e[0]+'</span><span class="font-bold text-primary-500">Rp '+formatNumber(e[1])+'</span></div>';
+      });c.innerHTML=h;
     }
-
-    function renderReportCabang(perCabang) {
-      const container = document.getElementById('reportCabang');
-      if (Object.keys(perCabang).length === 0) {
-        container.innerHTML = '<p class="loading-text">Belum ada data</p>';
-        return;
-      }
-      let html = '';
-      Object.entries(perCabang).sort(function(a,b) { return b[1]-a[1]; }).forEach(function(entry) {
-        html += '<div class="report-item"><span class="report-item-name">' + entry[0] + '</span><span class="report-item-value">Rp ' + formatNumber(entry[1]) + '</span></div>';
-      });
-      container.innerHTML = html;
+    function renderReportCabang(pc){
+      var c=document.getElementById('reportCabang');
+      if(!Object.keys(pc).length){c.innerHTML='<p class="text-xs text-gray-300 text-center py-4">Belum ada data</p>';return;}
+      var h='';Object.entries(pc).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+        h+='<div class="flex justify-between py-1.5 border-b border-gray-50 text-xs"><span class="text-gray-600">'+e[0]+'</span><span class="font-bold text-primary-500">Rp '+formatNumber(e[1])+'</span></div>';
+      });c.innerHTML=h;
+    }
+    var currentTransactions=[];
+    function renderTransactionTable(rows){
+      currentTransactions=rows||[];
+      var tb=document.getElementById('trxTableBody');
+      if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-6 text-gray-300 text-xs">Belum ada transaksi</td></tr>';return;}
+      var h='';rows.forEach(function(r){
+        var mc=r.metode==='Cash'?'bg-green-50 text-green-600':'bg-blue-50 text-blue-600';
+        h+='<tr class="border-b border-gray-50"><td class="py-2 px-2">'+r.waktu+'</td><td class="py-2 px-2">'+r.items+'</td><td class="py-2 px-2 font-bold text-primary-500">Rp '+formatNumber(r.total)+'</td><td class="py-2 px-2"><span class="'+mc+' text-[9px] font-bold px-1.5 py-0.5 rounded-md">'+r.metode+'</span></td><td class="py-2 px-2">'+r.kasir+'</td><td class="py-2 px-2">'+r.cabang+'</td></tr>';
+      });tb.innerHTML=h;
     }
 
 
-    // === TRANSACTION TABLE ===
-    var currentTransactions = [];
-
-    function renderTransactionTable(rows) {
-      currentTransactions = rows || [];
-      var tbody = document.getElementById('trxTableBody');
-      if (!rows || rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="loading-text">Belum ada transaksi</td></tr>';
-        return;
-      }
-      var html = '';
-      rows.forEach(function(r) {
-        html += '<tr>' +
-          '<td style="padding:8px;border-bottom:1px solid #f5f6fa;">' + r.waktu + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f5f6fa;">' + r.items + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f5f6fa;color:#e74c3c;font-weight:600;">Rp ' + formatNumber(r.total) + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f5f6fa;"><span style="background:' + (r.metode==='Cash'?'#eafaf1':'#eaf0fb') + ';padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;color:' + (r.metode==='Cash'?'#27ae60':'#2980b9') + ';">' + r.metode + '</span></td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f5f6fa;">' + r.kasir + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f5f6fa;">' + r.cabang + '</td>' +
-        '</tr>';
-      });
-      tbody.innerHTML = html;
+    // === EXPORT ===
+    function exportExcel(){
+      var period=document.getElementById('filterPeriod').value,cabang=document.getElementById('filterCabang').value;
+      if(currentTransactions&&currentTransactions.length>0){doExportExcel(currentTransactions,period,cabang);}
+      else{google.script.run.withSuccessHandler(function(rows){if(!rows||!rows.length){alert('Tidak ada data.');return;}currentTransactions=rows;renderTransactionTable(rows);doExportExcel(rows,period,cabang);}).getTransactionDetail(period,cabang);}
+    }
+    function doExportExcel(data,period,cabang){
+      var csv='No,Waktu,Items,Total,Metode,Kasir,Cabang\n';
+      data.forEach(function(r,i){csv+=(i+1)+','+r.waktu+',"'+(r.items||'').replace(/"/g,'""')+'",'+r.total+','+r.metode+','+r.kasir+','+r.cabang+'\n';});
+      var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Laporan_'+period+'_'+cabang+'_'+new Date().toISOString().split('T')[0]+'.csv';document.body.appendChild(a);a.click();a.remove();
+    }
+    function exportPDF(){
+      var period=document.getElementById('filterPeriod').value,cabang=document.getElementById('filterCabang').value;
+      if(currentTransactions&&currentTransactions.length>0){doExportPDF(currentTransactions,period,cabang);}
+      else{google.script.run.withSuccessHandler(function(rows){if(!rows||!rows.length){alert('Tidak ada data.');return;}currentTransactions=rows;renderTransactionTable(rows);doExportPDF(rows,period,cabang);}).getTransactionDetail(period,cabang);}
+    }
+    function doExportPDF(data,period,cabang){
+      var pl=period==='today'?'Hari Ini':period==='7days'?'7 Hari':'30 Hari';
+      var gt=data.reduce(function(s,r){return s+r.total;},0);
+      var w=window.open('','_blank');
+      var h='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Laporan</title><style>body{font:12px Arial;padding:20px;color:#2c3e50}h2{color:#e74c3c;margin:0 0 5px}table{width:100%;border-collapse:collapse;margin-top:10px}th{background:#e74c3c;color:#fff;padding:6px;text-align:left;font-size:10px}td{padding:5px;border-bottom:1px solid #eee;font-size:10px}tr:nth-child(even){background:#f9f9f9}.t{font-weight:bold;background:#fef5e7!important}</style></head><body>';
+      h+='<h2>🥟 Dimsum Enak - Laporan</h2><p style="color:#888;font-size:10px">Periode: '+pl+' | Cabang: '+cabang+' | '+new Date().toLocaleString("id-ID")+'</p>';
+      h+='<table><thead><tr><th>No</th><th>Waktu</th><th>Items</th><th>Total</th><th>Metode</th><th>Kasir</th><th>Cabang</th></tr></thead><tbody>';
+      data.forEach(function(r,i){h+='<tr><td>'+(i+1)+'</td><td>'+r.waktu+'</td><td>'+r.items+'</td><td>Rp '+formatNumber(r.total)+'</td><td>'+r.metode+'</td><td>'+r.kasir+'</td><td>'+r.cabang+'</td></tr>';});
+      h+='<tr class="t"><td colspan="3">TOTAL ('+data.length+' trx)</td><td colspan="4">Rp '+formatNumber(gt)+'</td></tr></tbody></table>';
+      h+='<script>setTimeout(function(){window.print();},500)<\/script></body></html>';
+      w.document.write(h);w.document.close();
     }
 
-    // === EXPORT EXCEL (CSV) ===
-    function exportExcel() {
-      var period = document.getElementById('filterPeriod').value;
-      var cabang = document.getElementById('filterCabang').value;
-
-      // If data already loaded, use it. Otherwise fetch fresh.
-      if (currentTransactions && currentTransactions.length > 0) {
-        doExportExcel(currentTransactions, period, cabang);
-      } else {
-        // Fetch data from server first
-        google.script.run
-          .withSuccessHandler(function(rows) {
-            if (!rows || rows.length === 0) {
-              alert('Tidak ada data transaksi di periode ini.');
-              return;
-            }
-            currentTransactions = rows;
-            renderTransactionTable(rows);
-            doExportExcel(rows, period, cabang);
-          })
-          .withFailureHandler(function(err) {
-            alert('Gagal mengambil data: ' + (err.message || err));
-          })
-          .getTransactionDetail(period, cabang);
-      }
-    }
-
-    function doExportExcel(data, period, cabang) {
-      var csv = 'No,Waktu,Items,Total,Metode,Kasir,Cabang\n';
-      data.forEach(function(r, idx) {
-        var items = '"' + (r.items || '').replace(/"/g, '""') + '"';
-        csv += (idx+1) + ',' + r.waktu + ',' + items + ',' + r.total + ',' + r.metode + ',' + r.kasir + ',' + r.cabang + '\n';
-      });
-
-      var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'Laporan_DimSum_' + period + '_' + cabang + '_' + new Date().toISOString().split('T')[0] + '.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    // === EXPORT PDF ===
-    function exportPDF() {
-      var period = document.getElementById('filterPeriod').value;
-      var cabang = document.getElementById('filterCabang').value;
-
-      if (currentTransactions && currentTransactions.length > 0) {
-        doExportPDF(currentTransactions, period, cabang);
-      } else {
-        google.script.run
-          .withSuccessHandler(function(rows) {
-            if (!rows || rows.length === 0) {
-              alert('Tidak ada data transaksi di periode ini.');
-              return;
-            }
-            currentTransactions = rows;
-            renderTransactionTable(rows);
-            doExportPDF(rows, period, cabang);
-          })
-          .withFailureHandler(function(err) {
-            alert('Gagal mengambil data: ' + (err.message || err));
-          })
-          .getTransactionDetail(period, cabang);
-      }
-    }
-
-    function doExportPDF(data, period, cabang) {
-      var periodLabel = period === 'today' ? 'Hari Ini' : period === '7days' ? '7 Hari' : '30 Hari';
-      var grandTotal = data.reduce(function(s, r) { return s + r.total; }, 0);
-
-      var printWindow = window.open('', '_blank');
-      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-        '<title>Laporan Dimsum Enak</title>' +
-        '<style>' +
-        'body{font-family:Arial,sans-serif;padding:20px;color:#2c3e50;font-size:12px;}' +
-        'h2{color:#e74c3c;margin:0 0 5px;}' +
-        '.info{color:#7f8c8d;margin-bottom:15px;font-size:11px;}' +
-        'table{width:100%;border-collapse:collapse;margin-top:10px;}' +
-        'th{background:#e74c3c;color:white;padding:8px 6px;text-align:left;font-size:11px;}' +
-        'td{padding:6px;border-bottom:1px solid #ecf0f1;font-size:11px;}' +
-        'tr:nth-child(even){background:#f9f9f9;}' +
-        '.total-row{font-weight:bold;background:#fef5e7 !important;}' +
-        '.footer{margin-top:20px;text-align:center;color:#95a5a6;font-size:10px;}' +
-        '@media print{body{padding:10px;}}' +
-        '</style></head><body>' +
-        '<h2>🥟 Dimsum Enak - Laporan Penjualan</h2>' +
-        '<div class="info">Periode: ' + periodLabel + ' | Cabang: ' + cabang + ' | Dicetak: ' + new Date().toLocaleString('id-ID') + '</div>' +
-        '<table><thead><tr><th>No</th><th>Waktu</th><th>Items</th><th>Total</th><th>Metode</th><th>Kasir</th><th>Cabang</th></tr></thead><tbody>';
-
-      data.forEach(function(r, idx) {
-        html += '<tr><td>' + (idx+1) + '</td><td>' + r.waktu + '</td><td>' + r.items + '</td><td>Rp ' + formatNumber(r.total) + '</td><td>' + r.metode + '</td><td>' + r.kasir + '</td><td>' + r.cabang + '</td></tr>';
-      });
-
-      html += '<tr class="total-row"><td colspan="3">TOTAL (' + data.length + ' transaksi)</td><td colspan="4">Rp ' + formatNumber(grandTotal) + '</td></tr>';
-      html += '</tbody></table>';
-      html += '<div class="footer">Laporan otomatis dari sistem POS Dimsum Enak</div>';
-      html += '<script>setTimeout(function(){window.print();},500);<\/script>';
-      html += '</body></html>';
-
-      printWindow.document.write(html);
-      printWindow.document.close();
-    }
 
     // === MENU MANAGEMENT ===
-    function showAddMenu() { document.getElementById('addMenuForm').style.display = 'block'; }
-    function hideAddMenu() { document.getElementById('addMenuForm').style.display = 'none'; }
-
-    function saveMenu() {
-      const nama = document.getElementById('menuNama').value.trim();
-      const harga = parseInt(document.getElementById('menuHarga').value);
-      const fileInput = document.getElementById('menuGambar');
-
-      if (!nama || !harga) { alert('Nama dan harga wajib diisi!'); return; }
-
-      if (fileInput.files.length > 0) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const base64 = e.target.result.split(',')[1];
-          const filename = fileInput.files[0].name;
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success) { hideAddMenu(); loadMenuList(); clearMenuForm(); }
-            })
-            .addMenu(nama, harga, base64, filename);
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-      } else {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) { hideAddMenu(); loadMenuList(); clearMenuForm(); }
-          })
-          .addMenu(nama, harga, '', '');
-      }
+    function showAddMenu(){document.getElementById('addMenuForm').classList.remove('hidden');}
+    function hideAddMenu(){document.getElementById('addMenuForm').classList.add('hidden');}
+    function saveMenu(){
+      var nama=document.getElementById('menuNama').value.trim(),harga=parseInt(document.getElementById('menuHarga').value),fi=document.getElementById('menuGambar');
+      if(!nama||!harga){alert('Nama & harga wajib!');return;}
+      if(fi.files.length>0){var r=new FileReader();r.onload=function(e){var b=e.target.result.split(',')[1];google.script.run.withSuccessHandler(function(res){if(res.success){hideAddMenu();loadMenuList();clearMenuForm();}}).addMenu(nama,harga,b,fi.files[0].name);};r.readAsDataURL(fi.files[0]);}
+      else{google.script.run.withSuccessHandler(function(res){if(res.success){hideAddMenu();loadMenuList();clearMenuForm();}}).addMenu(nama,harga,'','');}
     }
-
-    function clearMenuForm() {
-      document.getElementById('menuNama').value = '';
-      document.getElementById('menuHarga').value = '';
-      document.getElementById('menuGambar').value = '';
+    function clearMenuForm(){document.getElementById('menuNama').value='';document.getElementById('menuHarga').value='';document.getElementById('menuGambar').value='';}
+    function loadMenuList(){
+      google.script.run.withSuccessHandler(function(data){
+        var c=document.getElementById('menuList');
+        if(!data.length){c.innerHTML='<p class="text-xs text-gray-300 text-center py-8">Belum ada menu</p>';return;}
+        var h='';data.forEach(function(item){
+          var img=(item.gambar&&item.gambar.length>5)?'<img src="'+item.gambar+'" class="w-10 h-10 rounded-lg object-cover">':'<div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">🥟</div>';
+          var st=item.aktif?'Nonaktifkan':'Aktifkan';
+          h+='<div class="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm"><div class="flex items-center gap-3">'+img+'<div><p class="text-xs font-semibold text-gray-700">'+item.nama+'</p><p class="text-[10px] font-bold text-primary-500">Rp '+formatNumber(item.harga)+'</p></div></div><div class="flex gap-1.5"><button onclick="toggleMenuItem('+item.id+','+(!item.aktif)+')" class="text-[10px] font-semibold bg-blue-50 text-blue-600 px-2 py-1 rounded-md">'+st+'</button><button onclick="deleteMenuItem('+item.id+')" class="text-[10px] font-semibold bg-red-50 text-red-500 px-2 py-1 rounded-md">Hapus</button></div></div>';
+        });c.innerHTML=h;
+      }).getAllMenu();
     }
-
-    function loadMenuList() {
-      google.script.run
-        .withSuccessHandler(function(data) {
-          const container = document.getElementById('menuList');
-          if (data.length === 0) {
-            container.innerHTML = '<p class="loading-text">Belum ada menu</p>';
-            return;
-          }
-          let html = '';
-          data.forEach(function(item) {
-            const imgHtml = (item.gambar && item.gambar.length > 5)
-              ? '<img src="' + item.gambar + '">'
-              : '🥟';
-            const statusText = item.aktif ? 'Nonaktifkan' : 'Aktifkan';
-            html += '<div class="menu-mgmt-item">' +
-              '<div class="menu-mgmt-item-left">' +
-                '<div class="menu-mgmt-img">' + imgHtml + '</div>' +
-                '<div><div class="menu-mgmt-name">' + item.nama + '</div><div class="menu-mgmt-price">Rp ' + formatNumber(item.harga) + '</div></div>' +
-              '</div>' +
-              '<div class="menu-mgmt-actions">' +
-                '<button class="btn-sm btn-toggle" onclick="toggleMenuItem(' + item.id + ',' + !item.aktif + ')">' + statusText + '</button>' +
-                '<button class="btn-sm btn-delete" onclick="deleteMenuItem(' + item.id + ')">Hapus</button>' +
-              '</div>' +
-            '</div>';
-          });
-          container.innerHTML = html;
-        })
-        .getAllMenu();
-    }
-
-    function toggleMenuItem(id, aktif) {
-      google.script.run.withSuccessHandler(function() { loadMenuList(); }).toggleMenu(id, aktif);
-    }
-
-    function deleteMenuItem(id) {
-      if (confirm('Yakin hapus menu ini?')) {
-        google.script.run.withSuccessHandler(function() { loadMenuList(); }).deleteMenu(id);
-      }
-    }
+    function toggleMenuItem(id,aktif){google.script.run.withSuccessHandler(function(){loadMenuList();}).toggleMenu(id,aktif);}
+    function deleteMenuItem(id){if(confirm('Hapus menu ini?'))google.script.run.withSuccessHandler(function(){loadMenuList();}).deleteMenu(id);}
 
     // === USER MANAGEMENT ===
-    function showAddUser() { document.getElementById('addUserForm').style.display = 'block'; }
-    function hideAddUser() { document.getElementById('addUserForm').style.display = 'none'; }
-
-    function saveUser() {
-      const username = document.getElementById('newUsername').value.trim();
-      const password = document.getElementById('newPassword').value;
-      const role = document.getElementById('newRole').value;
-      const cabang = document.getElementById('newCabang').value.trim();
-
-      if (!username || !password || !cabang) { alert('Semua field wajib diisi!'); return; }
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            hideAddUser();
-            loadUsers();
-            document.getElementById('newUsername').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('newCabang').value = '';
-          } else {
-            alert(res.message);
-          }
-        })
-        .addUser(username, password, role, cabang);
+    function showAddUser(){document.getElementById('addUserForm').classList.remove('hidden');}
+    function hideAddUser(){document.getElementById('addUserForm').classList.add('hidden');}
+    function saveUser(){
+      var u=document.getElementById('newUsername').value.trim(),p=document.getElementById('newPassword').value,r=document.getElementById('newRole').value,c=document.getElementById('newCabang').value.trim();
+      if(!u||!p||!c){alert('Semua field wajib!');return;}
+      google.script.run.withSuccessHandler(function(res){if(res.success){hideAddUser();loadUsers();document.getElementById('newUsername').value='';document.getElementById('newPassword').value='';document.getElementById('newCabang').value='';}else{alert(res.message);}}).addUser(u,p,r,c);
     }
-
-    function loadUsers() {
-      google.script.run
-        .withSuccessHandler(function(data) {
-          const container = document.getElementById('userList');
-          let html = '';
-          data.forEach(function(user) {
-            html += '<div class="user-item">' +
-              '<div class="user-item-info">' +
-                '<div class="user-avatar">' + user.username.charAt(0).toUpperCase() + '</div>' +
-                '<div><div class="user-name">' + user.username + '</div><div class="user-meta">' + user.role + ' • ' + user.cabang + '</div></div>' +
-              '</div>' +
-              '<button class="btn-sm btn-delete" onclick="deleteUserItem(\'' + user.username + '\')">Hapus</button>' +
-            '</div>';
-          });
-          container.innerHTML = html;
-        })
-        .getUsers();
+    function loadUsers(){
+      google.script.run.withSuccessHandler(function(data){
+        var c=document.getElementById('userList');var h='';
+        data.forEach(function(u){
+          h+='<div class="bg-white rounded-xl p-3 flex items-center justify-between shadow-sm"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-accent-400 flex items-center justify-center text-white text-xs font-bold">'+u.username.charAt(0).toUpperCase()+'</div><div><p class="text-xs font-semibold text-gray-700">'+u.username+'</p><p class="text-[10px] text-gray-400">'+u.role+' • '+u.cabang+'</p></div></div><button onclick="deleteUserItem(\''+u.username+'\')" class="text-[10px] font-semibold bg-red-50 text-red-500 px-2 py-1 rounded-md">Hapus</button></div>';
+        });c.innerHTML=h;
+      }).getUsers();
     }
-
-    function deleteUserItem(username) {
-      if (confirm('Yakin hapus user ' + username + '?')) {
-        google.script.run.withSuccessHandler(function() { loadUsers(); }).deleteUser(username);
-      }
-    }
+    function deleteUserItem(u){if(confirm('Hapus user '+u+'?'))google.script.run.withSuccessHandler(function(){loadUsers();}).deleteUser(u);}
 
     // === NAVIGATION ===
-    function goToKasir() {
-      google.script.run
-        .withSuccessHandler(function(baseUrl) {
-          window.top.location.href = baseUrl + '?page=kasir&token=' + TOKEN;
-        })
-        .getWebAppUrl();
-    }
-
-    function handleLogout() {
-      google.script.run
-        .withSuccessHandler(function() {
-          google.script.run
-            .withSuccessHandler(function(baseUrl) {
-              window.top.location.href = baseUrl;
-            })
-            .getWebAppUrl();
-        })
-        .logout(TOKEN);
-    }
-
-    // === UTILITIES ===
-    function formatNumber(num) {
-      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
+    function goToKasir(){google.script.run.withSuccessHandler(function(u){window.top.location.href=u+'?page=kasir&token='+TOKEN;}).getWebAppUrl();}
+    function handleLogout(){google.script.run.withSuccessHandler(function(){google.script.run.withSuccessHandler(function(u){window.top.location.href=u;}).getWebAppUrl();}).logout(TOKEN);}
+    function formatNumber(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
   </script>
 </body>
 </html>

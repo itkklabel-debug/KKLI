@@ -1,135 +1,31 @@
-<style>
-/* ============================================
-   DIMSUM ENAK - SHARED STYLES
-   Theme: Red (#e74c3c) + Yellow (#f1c40f)
-   ============================================ */
-
-/* Reset & Base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #dcdde1;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #b2bec3;
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  color: #2c3e50;
-}
-
-/* Buttons Base */
-button {
-  font-family: inherit;
-  outline: none;
-}
-button:focus {
-  outline: none;
-}
-
-/* Inputs Base */
-input, select, textarea {
-  font-family: inherit;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes popIn {
-  from { transform: scale(0.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Utility Classes */
-.text-center { text-align: center; }
-.text-red { color: #e74c3c; }
-.text-green { color: #27ae60; }
-.text-muted { color: #7f8c8d; }
-.font-bold { font-weight: 700; }
-.mt-10 { margin-top: 10px; }
-.mb-10 { margin-bottom: 10px; }
-.hidden { display: none !important; }
-
-/* Loading Spinner */
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #ecf0f1;
-  border-top-color: #e74c3c;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 20px auto;
-}
-
-/* Toast Notification */
-.toast {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #2c3e50;
-  color: white;
-  padding: 10px 24px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  z-index: 9999;
-  animation: slideUp 0.3s ease, fadeIn 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-/* Selection Color */
-::selection {
-  background: rgba(231, 76, 60, 0.2);
-  color: #c0392b;
-}
-
-/* Print Reset */
-@media print {
-  .no-print {
-    display: none !important;
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: { 50:'#fef2f2', 100:'#fee2e2', 200:'#fecaca', 300:'#fca5a5', 400:'#f87171', 500:'#e74c3c', 600:'#c0392b', 700:'#a3211b', 800:'#7f1d1d', 900:'#450a0a' },
+        accent: { 50:'#fffbeb', 100:'#fef3c7', 200:'#fde68a', 300:'#fcd34d', 400:'#f1c40f', 500:'#d4a30a', 600:'#b88d08', 700:'#92400e', 800:'#78350f', 900:'#451a03' },
+      },
+      fontFamily: { sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'] },
+    }
   }
 }
-
-/* Responsive Helpers */
-@media (max-width: 480px) {
-  .hide-mobile { display: none !important; }
-}
-@media (min-width: 769px) {
-  .hide-desktop { display: none !important; }
-}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes popIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .animate-fadeIn { animation: fadeIn 0.3s ease; }
+  .animate-slideUp { animation: slideUp 0.4s ease; }
+  .animate-popIn { animation: popIn 0.3s ease; }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+  @media print { .no-print { display:none!important; } }
 </style>
