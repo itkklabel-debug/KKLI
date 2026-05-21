@@ -336,6 +336,11 @@ function uploadQrisBukti(base64Data, filename, kasir, cabang) {
 function getTransactionDetail(period, cabang) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('transaksi');
+  if (!sheet) return [];
+  
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return []; // Only header, no data
+  
   const data = sheet.getDataRange().getValues();
   
   const now = new Date();
@@ -357,17 +362,40 @@ function getTransactionDetail(period, cabang) {
   
   const results = [];
   for (let i = 1; i < data.length; i++) {
-    const waktu = new Date(data[i][0]);
+    // Skip empty rows
+    if (!data[i][0]) continue;
+    
+    // Parse date - handle both Date objects and string formats
+    let waktu;
+    if (data[i][0] instanceof Date) {
+      waktu = data[i][0];
+    } else {
+      // Replace space with T for better cross-browser parsing
+      const dateStr = String(data[i][0]).replace(' ', 'T');
+      waktu = new Date(dateStr);
+    }
+    
+    // Skip invalid dates
+    if (isNaN(waktu.getTime())) continue;
+    
     if (waktu < startDate) continue;
     if (cabang && cabang !== 'semua' && data[i][4] !== cabang) continue;
     
+    // Format waktu for display
+    let waktuDisplay;
+    try {
+      waktuDisplay = Utilities.formatDate(waktu, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm');
+    } catch(e) {
+      waktuDisplay = String(data[i][0]);
+    }
+    
     results.push({
-      waktu: data[i][0],
+      waktu: waktuDisplay,
       total: Number(data[i][1]) || 0,
-      metode: data[i][2],
-      kasir: data[i][3],
-      cabang: data[i][4],
-      items: (data[i][5] || '').toString().split(' | Bukti:')[0]  // Remove bukti URL from display
+      metode: String(data[i][2] || ''),
+      kasir: String(data[i][3] || ''),
+      cabang: String(data[i][4] || ''),
+      items: (data[i][5] || '').toString().split(' | Bukti:')[0]
     });
   }
   
@@ -428,7 +456,19 @@ function getReportData(period, cabang) {
   const perMetode = { 'Cash': 0, 'QRIS': 0 };
   
   for (let i = 1; i < data.length; i++) {
-    const waktu = new Date(data[i][0]);
+    // Skip empty rows
+    if (!data[i][0]) continue;
+    
+    // Parse date - handle both Date objects and string formats
+    let waktu;
+    if (data[i][0] instanceof Date) {
+      waktu = data[i][0];
+    } else {
+      const dateStr = String(data[i][0]).replace(' ', 'T');
+      waktu = new Date(dateStr);
+    }
+    if (isNaN(waktu.getTime())) continue;
+    
     if (waktu < startDate) continue;
     if (cabang && cabang !== 'semua' && data[i][4] !== cabang) continue;
     
