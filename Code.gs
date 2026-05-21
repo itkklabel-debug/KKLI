@@ -275,6 +275,49 @@ function uploadImage(base64Data, filename) {
   }
 }
 
+// === QRIS BUKTI UPLOAD ===
+function uploadQrisBukti(base64Data, filename, kasir, cabang) {
+  try {
+    const decoded = Utilities.base64Decode(base64Data);
+    const blob = Utilities.newBlob(decoded, 'image/jpeg', filename);
+    
+    // Create or get QRIS folder
+    const folderName = 'DimSum_POS_QRIS_Bukti';
+    const folders = DriveApp.getFoldersByName(folderName);
+    let folder;
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+      folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+    
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const fileUrl = 'https://drive.google.com/uc?id=' + file.getId();
+    
+    // Log to transaksi sheet - update last QRIS transaction with bukti URL
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('transaksi');
+    const data = sheet.getDataRange().getValues();
+    
+    // Find the last QRIS transaction by this kasir and append bukti URL
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][2] === 'QRIS' && data[i][3] === kasir && data[i][4] === cabang) {
+        // Append bukti URL to items column or add new column
+        const currentItems = data[i][5] || '';
+        sheet.getRange(i + 1, 6).setValue(currentItems + ' | Bukti: ' + fileUrl);
+        break;
+      }
+    }
+    
+    return { success: true, url: fileUrl };
+  } catch (e) {
+    Logger.log('QRIS upload error: ' + e.toString());
+    return { success: false, message: e.toString() };
+  }
+}
+
 // === TRANSACTION MANAGEMENT ===
 function saveTransaction(items, total, metode, kasir, cabang) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

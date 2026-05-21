@@ -556,6 +556,23 @@
       <div class="modal-icon">✅</div>
       <h3>Pembayaran Berhasil!</h3>
       <p id="modalInfo"></p>
+      <!-- QRIS Upload Section (only visible for QRIS payments) -->
+      <div id="qrisUploadSection" style="display:none;margin-bottom:16px;">
+        <div style="background:#eaf0fb;border-radius:12px;padding:14px;margin-bottom:10px;">
+          <p style="margin:0 0 10px;font-size:13px;color:#2980b9;font-weight:600;">📷 Upload Bukti Transfer QRIS</p>
+          <input type="file" id="qrisBukti" accept="image/*" capture="environment" 
+            style="display:none;" onchange="handleQrisUpload(this)">
+          <button onclick="document.getElementById('qrisBukti').click()" 
+            style="width:100%;padding:12px;background:linear-gradient(135deg,#2980b9,#3498db);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">
+            📷 Ambil Foto Bukti
+          </button>
+        </div>
+        <!-- Preview -->
+        <div id="qrisPreview" style="display:none;margin-top:8px;">
+          <img id="qrisPreviewImg" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;border:2px solid #ecf0f1;">
+          <p id="qrisUploadStatus" style="font-size:12px;color:#27ae60;margin:6px 0 0;"></p>
+        </div>
+      </div>
       <div class="modal-btns">
         <button class="modal-btn secondary" onclick="closeModal()">Tutup</button>
         <button class="modal-btn primary" onclick="printReceipt()">🖨️ Cetak Struk</button>
@@ -755,8 +772,19 @@
             
             // Show success
             document.getElementById('modalInfo').textContent = 
-              'Total: Rp ' + formatNumber(total) + ' | ' + metode + '\n' + result.waktu;
+              'Total: Rp ' + formatNumber(total) + ' | ' + metode + ' | ' + result.waktu;
             document.getElementById('successModal').classList.add('show');
+            
+            // Show QRIS upload section if QRIS payment
+            var qrisSection = document.getElementById('qrisUploadSection');
+            if (metode === 'QRIS') {
+              qrisSection.style.display = 'block';
+            } else {
+              qrisSection.style.display = 'none';
+            }
+            // Reset preview
+            document.getElementById('qrisPreview').style.display = 'none';
+            document.getElementById('qrisUploadStatus').textContent = '';
             
             // Prepare receipt
             prepareReceipt(lastTransaction);
@@ -772,6 +800,41 @@
           btnQris.disabled = false;
         })
         .saveTransaction(cart, total, metode, USERNAME, CABANG);
+    }
+    
+    // === QRIS UPLOAD ===
+    function handleQrisUpload(input) {
+      if (!input.files || !input.files[0]) return;
+      
+      var file = input.files[0];
+      var reader = new FileReader();
+      
+      reader.onload = function(e) {
+        // Show preview
+        document.getElementById('qrisPreviewImg').src = e.target.result;
+        document.getElementById('qrisPreview').style.display = 'block';
+        document.getElementById('qrisUploadStatus').textContent = '⏳ Mengupload...';
+        
+        // Get base64 data (remove prefix)
+        var base64 = e.target.result.split(',')[1];
+        var filename = 'QRIS_' + CABANG + '_' + USERNAME + '_' + Date.now() + '.jpg';
+        
+        // Upload to Drive
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.success) {
+              document.getElementById('qrisUploadStatus').textContent = '✅ Bukti QRIS berhasil diupload!';
+            } else {
+              document.getElementById('qrisUploadStatus').textContent = '❌ Gagal upload. Coba lagi.';
+            }
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById('qrisUploadStatus').textContent = '❌ Error: ' + err.message;
+          })
+          .uploadQrisBukti(base64, filename, USERNAME, CABANG);
+      };
+      
+      reader.readAsDataURL(file);
     }
     
     // === RECEIPT ===
