@@ -484,9 +484,14 @@ function getReportData(period, cabang) {
     const cabangName = data[i][4];
     perCabang[cabangName] = (perCabang[cabangName] || 0) + amount;
     
-    // Per hari
-    const hari = Utilities.formatDate(waktu, 'Asia/Jakarta', 'dd/MM');
-    perHari[hari] = (perHari[hari] || 0) + amount;
+    // Per hari (atau per jam jika today)
+    var hariKey;
+    if (period === 'today') {
+      hariKey = Utilities.formatDate(waktu, 'Asia/Jakarta', 'HH:00');
+    } else {
+      hariKey = Utilities.formatDate(waktu, 'Asia/Jakarta', 'dd/MM');
+    }
+    perHari[hariKey] = (perHari[hariKey] || 0) + amount;
     
     // Per metode
     const metode = data[i][2];
